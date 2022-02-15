@@ -21,6 +21,42 @@
 
 
 namespace nav {
+template <class Key, class BaseT, class Value, BaseT Min, BaseT Max>
+class array_map {
+    constexpr static size_t ArraySize = Max - Min + 1;
+    std::array<Value, ArraySize> values;
+    Value default_value;
+
+   public:
+    template <size_t N>
+    constexpr array_map(
+        std::array<Key, N> const& keys,
+        std::array<Value, N> const& values,
+        Value default_value)
+      : values()
+      , default_value(default_value) {
+        std::array<bool, ArraySize> visited {};
+        for (auto& val : this->values) {
+            val = default_value;
+        }
+        for (size_t i = 0; i < N; i++) {
+            auto key_i = BaseT(keys[i]) - Min;
+            if (!visited[key_i]) {
+                this->values[key_i] = values[i];
+                visited[key_i] = true;
+            }
+        }
+    }
+
+    constexpr auto operator[](Key key) const -> Value {
+        auto i = BaseT(key);
+        if (i < Min || i > Max) {
+            return default_value;
+        } else {
+            return values[i - Min];
+        }
+    }
+};
 template <class BaseT, class T, size_t N>
 constexpr auto min_base_value(std::array<T, N> const& arr) -> BaseT {
     if constexpr (N == 0) {
@@ -119,11 +155,12 @@ struct enum_traits {};
         constexpr static base_type min = min_base_value<BaseType>(values);     \
         constexpr static base_type max = max_base_value<BaseType>(values);     \
         constexpr static std::string_view get_name(EnumType value) {           \
-            if (base_type(value) < min || base_type(value) > max) {            \
-                return "EnumType"                                              \
-                       "(<unnamed>)";                                          \
-            }                                                                  \
-            return names[base_type(value) - min];                              \
+            constexpr auto name_map =                                          \
+                array_map<EnumType, base_type, std::string_view, min, max>(    \
+                    values,                                                    \
+                    names,                                                     \
+                    "<unnamed>");                                              \
+            return name_map[value];                                            \
         }                                                                      \
     };                                                                         \
     } // namespace nav
