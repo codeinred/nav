@@ -58,10 +58,20 @@ class indexed_map {
             return present[i - Min];
         }
     }
-    constexpr auto operator[](Key key) const -> Value {
-        auto i = BaseT(key);
-        if (i < Min || i > Max) {
+    constexpr auto get(Key key) const -> std::optional<Value> {
+        return (*this)[key];
+    }
+    constexpr auto get(Key key, Value default_value) const -> Value {
+        if (std::optional<Value> result = (*this)[key]) {
+            return *result;
+        } else {
             return default_value;
+        }
+    }
+    constexpr auto operator[](Key key) const -> std::optional<Value> {
+        auto i = BaseT(key);
+        if (i < Min || i > Max || !present[i - Min]) {
+            return std::nullopt;
         } else {
             return vals[i - Min];
         }
@@ -172,7 +182,17 @@ class array_map {
         }
         return entries[i].key == key;
     }
-    constexpr Value operator[](Key key) const {
+    constexpr auto get(Key key) const -> std::optional<Value> {
+        return (*this)[key];
+    }
+    constexpr auto get(Key key, Value default_value) const -> Value {
+        if (std::optional<Value> result = (*this)[key]) {
+            return *result;
+        } else {
+            return default_value;
+        }
+    }
+    constexpr auto operator[](Key key) const -> std::optional<Value> {
         size_t min = 0, max = count, i = count / 2;
         while (max - min > 1) {
             auto entry_key = entries[i];
@@ -187,14 +207,15 @@ class array_map {
             }
             i = (max + min) / 2;
         }
-        return entries[i].key == key ? entries[i].value : default_value;
+        return entries[i].key == key ? std::optional<Value> {entries[i].value}
+                                     : std::nullopt;
     }
 };
 
 // A map that returns an optional when you index into it. Returns nullopt if the
 // item wasn't found.
 template <class Key, class Value, size_t N>
-class optional_map {
+class binary_map {
     struct Entry {
         Key key {};
         Value value {};
@@ -205,7 +226,7 @@ class optional_map {
 
 
    public:
-    constexpr optional_map(
+    constexpr binary_map(
         std::array<Key, N> const& keys,
         std::array<Value, N> const& values) {
         for (size_t i = 0; i < N; i++) {
@@ -235,6 +256,16 @@ class optional_map {
         }
         return entries[i].key == key;
     }
+    constexpr auto get(Key key) const -> std::optional<Value> {
+        return (*this)[key];
+    }
+    constexpr auto get(Key key, Value default_value) const -> Value {
+        if (std::optional<Value> result = (*this)[key]) {
+            return *result;
+        } else {
+            return default_value;
+        }
+    }
     constexpr auto operator[](Key key) const -> std::optional<Value> {
         size_t min = 0, max = count, i = count / 2;
         while (max - min > 1) {
@@ -250,7 +281,8 @@ class optional_map {
             }
             i = (max + min) / 2;
         }
-        return entries[i].key == key ? entries[i].value : std::nullopt;
+        return entries[i].key == key ? std::optional<Value> {entries[i].value}
+                                     : std::nullopt;
     }
 };
 
@@ -392,11 +424,17 @@ struct enum_traits : impl::traits_impl<Enum> {};
             min,                                                               \
             max>(values, names, "<unnamed>");                                  \
         constexpr static auto                                                  \
-            names_to_values = optional_map<std::string_view, EnumType, count>( \
+            names_to_values = binary_map<std::string_view, EnumType, count>(   \
                 names,                                                         \
                 values);                                                       \
-        constexpr static std::string_view get_name(EnumType value) {           \
+        constexpr static std::optional<std::string_view> get_name(             \
+            EnumType value) {                                                  \
             return values_to_names[value];                                     \
+        }                                                                      \
+        constexpr static std::string_view get_name(                            \
+            EnumType value,                                                    \
+            std::string_view alternative) {                                    \
+            return values_to_names.get(value, alternative);                    \
         }                                                                      \
     };                                                                         \
     } // namespace nav

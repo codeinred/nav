@@ -120,6 +120,6 @@ TEST_CASE("Hello Tests") {
             "{0}({1}) == {0}::{2}\n",
             traits::name,
             int64_t(value),
-            traits::get_name(value));
+            traits::get_name(value, "<unnamed>"));
     }
 }
