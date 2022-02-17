@@ -113,6 +113,7 @@ TEST_CASE("Hello Tests") {
 
     using traits = nav::enum_traits<FooBar::FibonacciNumbers>;
 
+    fmt::print("Max name length: {}\n", traits::max_name_length);
     using enum FooBar::FibonacciNumbers;
     static_assert(F1 <= F2);
     for (auto value : traits::values) {

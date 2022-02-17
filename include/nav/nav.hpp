@@ -291,8 +291,8 @@ constexpr auto select_map(
     std::array<Key, N> const& keys,
     std::array<Value, N> const& values,
     Value const& default_value) {
-    // If we have a large sparse map, select binary_dedup_map. Otherwise, select the
-    // indexed map, which should be faster, but may use more memory
+    // If we have a large sparse map, select binary_dedup_map. Otherwise, select
+    // the indexed map, which should be faster, but may use more memory
     if constexpr (Max - Min > 2 * N + 256) {
         return binary_dedup_map<Key, Value, N>(keys, values, default_value);
     } else {
@@ -414,6 +414,15 @@ struct enum_traits : impl::traits_impl<Enum> {};
         constexpr static auto count = values.size();                           \
         /* A list of all the names in the enum, in declaration order */        \
         constexpr static auto names = split_trim<count>(#__VA_ARGS__);         \
+        constexpr static size_t                                                \
+            max_name_length = count == 0                                       \
+                                ? 0                                            \
+                                : std::max_element(                            \
+                                      names.data(),                            \
+                                      names.data() + count,                    \
+                                      [](auto n1, auto n2) {                   \
+                                          return n1.size() < n2.size();        \
+                                      }) -> size();                            \
         constexpr static base_type min = min_base_value<BaseType>(values);     \
         constexpr static base_type max = max_base_value<BaseType>(values);     \
         constexpr static auto values_to_names = select_map<                    \
