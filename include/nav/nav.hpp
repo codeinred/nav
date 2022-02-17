@@ -343,6 +343,32 @@ template <class T, class... Args>
 constexpr auto make_array(Args&&... args) -> std::array<T, sizeof...(args)> {
     return {static_cast<Args&&>(args)...};
 }
+template <size_t BuffSize, size_t N>
+constexpr auto static_cat(
+    std::array<std::string_view, N> const& views,
+    char sep) -> std::array<char, BuffSize> {
+    std::array<char, BuffSize> arr {};
+    size_t i = 0;
+    for (auto view : views) {
+        for (char ch : view) {
+            arr[i++] = ch;
+        }
+        arr[i++] = sep;
+    }
+    return arr;
+}
+template <size_t N>
+constexpr auto split_by_lengths_assuming_sep(
+    std::array<size_t, N> const& lengths,
+    char const* data) -> std::array<std::string_view, N> {
+    std::array<std::string_view, N> segments;
+    size_t offset = 0;
+    for (size_t i = 0; i < N; i++) {
+        segments[i] = std::string_view(data + offset, lengths[i]);
+        offset += lengths[i] + 1;
+    }
+    return segments;
+}
 
 constexpr std::string_view trim_whitespace(std::string_view view) {
     size_t start = view.find_first_not_of(' ');
@@ -399,6 +425,13 @@ constexpr auto map_array(std::array<T, N> const& arr, F func)
     }
     return result;
 }
+template <class Elem, class Result, class F>
+constexpr Result fold(Elem const* values, size_t N, Result initial, F func) {
+    for (size_t i = 0; i < N; i++) {
+        initial = func(initial, values[i]);
+    }
+    return initial;
+}
 template <class Enum>
 struct traits_impl {};
 } // namespace nav::impl
@@ -426,11 +459,35 @@ struct enum_traits : impl::traits_impl<Enum> {};
         constexpr static auto values = std::array {                            \
             MAP_OPERATOR(EnumType, !, __VA_ARGS__)};                           \
         constexpr static auto count = values.size();                           \
-        /* A list of all the names in the enum, in declaration order */        \
-        constexpr static auto names = split_trim<count>(#__VA_ARGS__);         \
+                                                                               \
+       private:                                                                \
+        constexpr static auto names_raw = split_trim<count>(#__VA_ARGS__);     \
+                                                                               \
+       public:                                                                 \
         constexpr static auto name_lengths = map_array(                        \
-            names,                                                             \
+            names_raw,                                                         \
             [](std::string_view name) { return name.size(); });                \
+                                                                               \
+       private:                                                                \
+        constexpr static size_t                                                \
+            name_block_buffer_size = count                                     \
+                                   + fold(                                     \
+                                         name_lengths.data(),                  \
+                                         count,                                \
+                                         0,                                    \
+                                         [](size_t acc, size_t elem) {         \
+                                             return acc + elem;                \
+                                         });                                   \
+        constexpr static auto name_block = static_cat<name_block_buffer_size>( \
+            names_raw,                                                         \
+            '\0');                                                             \
+                                                                               \
+                                                                               \
+       public:                                                                 \
+        /* A list of all the names in the enum, in declaration order */        \
+        constexpr static auto names = split_by_lengths_assuming_sep(           \
+            name_lengths,                                                      \
+            name_block.data());                                                \
         constexpr static size_t max_name_length = count == 0                   \
                                                     ? 0                        \
                                                     : *std::max_element(       \
