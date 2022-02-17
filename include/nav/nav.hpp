@@ -21,10 +21,12 @@
 
 
 namespace nav::impl {
-template <class Key, class BaseT, class Value, BaseT Min, BaseT Max>
+template <class Key, class Value, class BaseT, BaseT Min, BaseT Max>
 class indexed_map {
     constexpr static size_t ArraySize = Max - Min + 1;
-    std::array<Value, ArraySize> values;
+    std::array<Value, ArraySize> vals {};
+    std::array<bool, ArraySize> present {};
+
     Value default_value;
 
    public:
@@ -33,30 +35,179 @@ class indexed_map {
         std::array<Key, N> const& keys,
         std::array<Value, N> const& values,
         Value default_value)
-      : values()
+      : vals()
+      , present()
       , default_value(default_value) {
-        std::array<bool, ArraySize> visited {};
-        for (auto& val : this->values) {
+        for (auto& val : vals) {
             val = default_value;
         }
         for (size_t i = 0; i < N; i++) {
             auto key_i = BaseT(keys[i]) - Min;
-            if (!visited[key_i]) {
-                this->values[key_i] = values[i];
-                visited[key_i] = true;
+            if (!present[key_i]) {
+                vals[key_i] = values[i];
+                present[key_i] = true;
             }
         }
     }
-
+    constexpr auto contains(Key key) const -> bool {
+        auto i = BaseT(key);
+        if (i < Min || i > Max) {
+            return false;
+        } else {
+            return present[i - Min];
+        }
+    }
     constexpr auto operator[](Key key) const -> Value {
         auto i = BaseT(key);
         if (i < Min || i > Max) {
             return default_value;
         } else {
-            return values[i - Min];
+            return vals[i - Min];
         }
     }
 };
+
+// Stably sorts and de-duplicates an array, returning a new number of elements
+// stably sorted with duplicates removed
+template <size_t N, class T, class Cmp>
+constexpr size_t sort_dedup(T* values, Cmp less) {
+    if constexpr (N <= 1)
+        return N;
+
+    if constexpr (N == 2) {
+        auto &a = values[0], b = values[1];
+        if (less(a, b)) {
+            return N;
+        } else if (less(b, a)) {
+            std::swap(a, b);
+            return N;
+        } else {
+            // We return 1 b/c we're discarding B
+            return 1;
+        }
+    }
+
+    size_t first_half = sort_dedup<N / 2>(values, less);
+    size_t second_half = sort_dedup<N - N / 2>(values + N / 2, less);
+
+    T buffer[N];
+
+    T* a1 = values;
+    T* a2 = values + N / 2;
+    size_t i1 = 0, i2 = 0, dest = 0;
+    for (;;) {
+        // If either array is out of elements, copy the remaining elements and
+        // then break
+        if (i1 == first_half) {
+            while (i2 < second_half) {
+                buffer[dest++] = a2[i2++];
+            }
+            break;
+        } else if (i2 == second_half) {
+            while (i1 < first_half) {
+                buffer[dest++] = a1[i1++];
+            }
+            break;
+        } else {
+            if (less(a1[i1], a2[i2])) {
+                buffer[dest++] = a1[i1++];
+            } else if (less(a2[i2], a1[i1])) {
+                buffer[dest++] = a2[i2++];
+            } else {
+                // Discard the element from a2, since that's the duplicate
+                buffer[dest++] = a1[i1++];
+                i2++;
+            }
+        }
+    }
+    // Copy the elements back from buffer to the original array
+    for (size_t i = 0; i < dest; i++) {
+        values[i] = buffer[i];
+    }
+    // Return the number of elements we placed in the resulting array
+    return dest;
+}
+template <class Key, class Value, size_t N>
+class array_map {
+    struct Entry {
+        Key key {};
+        Value value {};
+    };
+    Value default_value {};
+    std::array<Entry, N> entries;
+    size_t count = 0;
+    // count <= N (It's the count with duplicates removed)
+
+
+   public:
+    constexpr array_map(
+        std::array<Key, N> const& keys,
+        std::array<Value, N> const& values,
+        Value const& default_value)
+      : default_value(default_value) {
+        for (size_t i = 0; i < N; i++) {
+            entries[i] = {keys[i], values[i]};
+        }
+        // Stably sort and deduplicate entries. Compute count to be the number
+        // of entries after deduplication
+        count = sort_dedup<N>(
+            entries.data(),
+            [](auto const& e1, auto const& e2) { return e1.key < e2.key; });
+    }
+    constexpr bool contains(Key key) const {
+        size_t min = 0, max = count, i = count / 2;
+        while (max - min > 1) {
+            auto entry_key = entries[i];
+            auto cmp = key <=> entries[i].key;
+            if (cmp == 0) {
+                return true;
+            }
+            if (cmp < 0) {
+                max = i;
+            } else {
+                min = i;
+            }
+            i = (max + min) / 2;
+        }
+        return entries[i].key == key;
+    }
+    constexpr Value operator[](Key key) const {
+        size_t min = 0, max = count, i = count / 2;
+        while (max - min > 1) {
+            auto entry_key = entries[i];
+            auto cmp = key <=> entries[i].key;
+            if (cmp == 0) {
+                return entries[i].value;
+            }
+            if (cmp < 0) {
+                max = i;
+            } else {
+                min = i;
+            }
+            i = (max + min) / 2;
+        }
+        return entries[i].key == key ? entries[i].value : default_value;
+    }
+};
+
+
+template <class Key, class Value, size_t N, class BaseT, BaseT Min, BaseT Max>
+constexpr auto select_map(
+    std::array<Key, N> const& keys,
+    std::array<Value, N> const& values,
+    Value const& default_value) {
+    // If we have a large sparse map, select array_map. Otherwise, select the
+    // indexed map, which should be faster, but may use more memory
+    if constexpr (Max - Min > 2 * N + 256) {
+        return array_map<Key, Value, N>(keys, values, default_value);
+    } else {
+        return indexed_map<Key, Value, BaseT, Min, Max>(
+            keys,
+            values,
+            default_value);
+    }
+}
+
 template <class BaseT, class T, size_t N>
 constexpr auto min_base_value(std::array<T, N> const& arr) -> BaseT {
     if constexpr (N == 0) {
@@ -170,11 +321,13 @@ struct enum_traits : impl::traits_impl<Enum> {};
         constexpr static auto names = split_trim<count>(#__VA_ARGS__);         \
         constexpr static base_type min = min_base_value<BaseType>(values);     \
         constexpr static base_type max = max_base_value<BaseType>(values);     \
-        constexpr static auto values_to_names =                                \
-            indexed_map<EnumType, base_type, std::string_view, min, max>(      \
-                values,                                                        \
-                names,                                                         \
-                "<unnamed>");                                                  \
+        constexpr static auto values_to_names = select_map<                    \
+            EnumType,                                                          \
+            std::string_view,                                                  \
+            count,                                                             \
+            base_type,                                                         \
+            min,                                                               \
+            max>(values, names, "<unnamed>");                                  \
         constexpr static std::string_view get_name(EnumType value) {           \
             return values_to_names[value];                                     \
         }                                                                      \
