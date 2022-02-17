@@ -231,7 +231,6 @@ class binary_map {
         Value value {};
     };
     std::array<Entry, N> entries;
-    size_t count = 0;
     // count <= N (It's the count with duplicates removed)
 
 
@@ -250,7 +249,7 @@ class binary_map {
             [](auto const& e1, auto const& e2) { return e1.key < e2.key; });
     }
     constexpr bool contains(Key key) const {
-        size_t min = 0, max = count, i = count / 2;
+        size_t min = 0, max = N, i = N / 2;
         while (max - min > 1) {
             auto entry_key = entries[i];
             auto cmp = key <=> entries[i].key;
@@ -277,7 +276,7 @@ class binary_map {
         }
     }
     constexpr auto operator[](Key key) const -> std::optional<Value> {
-        size_t min = 0, max = count, i = count / 2;
+        size_t min = 0, max = N, i = N / 2;
         while (max - min > 1) {
             auto entry_key = entries[i];
             auto cmp = key <=> entries[i].key;
