@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <string_view>
 #include <type_traits>
 
@@ -190,6 +191,68 @@ class array_map {
     }
 };
 
+// A map that returns an optional when you index into it. Returns nullopt if the
+// item wasn't found.
+template <class Key, class Value, size_t N>
+class optional_map {
+    struct Entry {
+        Key key {};
+        Value value {};
+    };
+    std::array<Entry, N> entries;
+    size_t count = 0;
+    // count <= N (It's the count with duplicates removed)
+
+
+   public:
+    constexpr optional_map(
+        std::array<Key, N> const& keys,
+        std::array<Value, N> const& values) {
+        for (size_t i = 0; i < N; i++) {
+            entries[i] = {keys[i], values[i]};
+        }
+        // Stably sort and deduplicate entries. Compute count to be the number
+        // of entries after deduplication
+        std::sort(
+            entries.data(),
+            entries.data() + N,
+            [](auto const& e1, auto const& e2) { return e1.key < e2.key; });
+    }
+    constexpr bool contains(Key key) const {
+        size_t min = 0, max = count, i = count / 2;
+        while (max - min > 1) {
+            auto entry_key = entries[i];
+            auto cmp = key <=> entries[i].key;
+            if (cmp == 0) {
+                return true;
+            }
+            if (cmp < 0) {
+                max = i;
+            } else {
+                min = i;
+            }
+            i = (max + min) / 2;
+        }
+        return entries[i].key == key;
+    }
+    constexpr auto operator[](Key key) const -> std::optional<Value> {
+        size_t min = 0, max = count, i = count / 2;
+        while (max - min > 1) {
+            auto entry_key = entries[i];
+            auto cmp = key <=> entries[i].key;
+            if (cmp == 0) {
+                return entries[i].value;
+            }
+            if (cmp < 0) {
+                max = i;
+            } else {
+                min = i;
+            }
+            i = (max + min) / 2;
+        }
+        return entries[i].key == key ? entries[i].value : std::nullopt;
+    }
+};
 
 template <class Key, class Value, size_t N, class BaseT, BaseT Min, BaseT Max>
 constexpr auto select_map(
@@ -328,6 +391,10 @@ struct enum_traits : impl::traits_impl<Enum> {};
             base_type,                                                         \
             min,                                                               \
             max>(values, names, "<unnamed>");                                  \
+        constexpr static auto                                                  \
+            names_to_values = optional_map<std::string_view, EnumType, count>( \
+                names,                                                         \
+                values);                                                       \
         constexpr static std::string_view get_name(EnumType value) {           \
             return values_to_names[value];                                     \
         }                                                                      \
