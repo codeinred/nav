@@ -4,6 +4,7 @@
 #include <optional>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #define PARENS ()
 #define EXPAND(...) EXPAND4(EXPAND4(EXPAND4(__VA_ARGS__)))
@@ -385,6 +386,19 @@ constexpr auto get_top_name(char const (&str)[N]) {
     }
 }
 
+template <
+    class T,
+    size_t N,
+    class F,
+    class Ret = decltype(std::declval<F>()(std::declval<T>()))>
+constexpr auto map_array(std::array<T, N> const& arr, F func)
+    -> std::array<Ret, N> {
+    std::array<Ret, N> result;
+    for (size_t i = 0; i < N; i++) {
+        result[i] = func(arr[i]);
+    }
+    return result;
+}
 template <class Enum>
 struct traits_impl {};
 } // namespace nav::impl
@@ -414,15 +428,15 @@ struct enum_traits : impl::traits_impl<Enum> {};
         constexpr static auto count = values.size();                           \
         /* A list of all the names in the enum, in declaration order */        \
         constexpr static auto names = split_trim<count>(#__VA_ARGS__);         \
-        constexpr static size_t                                                \
-            max_name_length = count == 0                                       \
-                                ? 0                                            \
-                                : std::max_element(                            \
-                                      names.data(),                            \
-                                      names.data() + count,                    \
-                                      [](auto n1, auto n2) {                   \
-                                          return n1.size() < n2.size();        \
-                                      }) -> size();                            \
+        constexpr static auto name_lengths = map_array(                        \
+            names,                                                             \
+            [](std::string_view name) { return name.size(); });                \
+        constexpr static size_t max_name_length = count == 0                   \
+                                                    ? 0                        \
+                                                    : *std::max_element(       \
+                                                        name_lengths.data(),   \
+                                                        name_lengths.data()    \
+                                                            + count);          \
         constexpr static base_type min = min_base_value<BaseType>(values);     \
         constexpr static base_type max = max_base_value<BaseType>(values);     \
         constexpr static auto values_to_names = select_map<                    \
