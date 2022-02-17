@@ -481,13 +481,26 @@ struct enum_traits : impl::traits_impl<Enum> {};
         constexpr static auto name_block = static_cat<name_block_buffer_size>( \
             names_raw,                                                         \
             '\0');                                                             \
-                                                                               \
+        constexpr static auto lowercase_name_block = map_array(                \
+            name_block,                                                        \
+            [](char ch) -> char {                                              \
+                if ('A' <= ch && ch <= 'Z') {                                  \
+                    return ch - 'A' + 'a';                                     \
+                } else {                                                       \
+                    return ch;                                                 \
+                }                                                              \
+            });                                                                \
                                                                                \
        public:                                                                 \
         /* A list of all the names in the enum, in declaration order */        \
         constexpr static auto names = split_by_lengths_assuming_sep(           \
             name_lengths,                                                      \
             name_block.data());                                                \
+        /* All the enum names, but lowercase. Provided to support lookup       \
+         * operations that ignore case. */                                     \
+        constexpr static auto lowercase_names = split_by_lengths_assuming_sep( \
+            name_lengths,                                                      \
+            lowercase_name_block.data());                                      \
         constexpr static size_t max_name_length = count == 0                   \
                                                     ? 0                        \
                                                     : *std::max_element(       \
