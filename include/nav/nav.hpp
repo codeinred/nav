@@ -139,7 +139,7 @@ constexpr size_t sort_dedup(T* values, Cmp less) {
     return dest;
 }
 template <class Key, class Value, size_t N>
-class array_map {
+class binary_dedup_map {
     struct Entry {
         Key key {};
         Value value {};
@@ -151,7 +151,7 @@ class array_map {
 
 
    public:
-    constexpr array_map(
+    constexpr binary_dedup_map(
         std::array<Key, N> const& keys,
         std::array<Value, N> const& values,
         Value const& default_value)
@@ -291,10 +291,10 @@ constexpr auto select_map(
     std::array<Key, N> const& keys,
     std::array<Value, N> const& values,
     Value const& default_value) {
-    // If we have a large sparse map, select array_map. Otherwise, select the
+    // If we have a large sparse map, select binary_dedup_map. Otherwise, select the
     // indexed map, which should be faster, but may use more memory
     if constexpr (Max - Min > 2 * N + 256) {
-        return array_map<Key, Value, N>(keys, values, default_value);
+        return binary_dedup_map<Key, Value, N>(keys, values, default_value);
     } else {
         return indexed_map<Key, Value, BaseT, Min, Max>(
             keys,
