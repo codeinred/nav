@@ -39,7 +39,7 @@ nav_declare_enum(
     Browse, Issue, Range, Seller, Court, );
 // clang-format on
 
-TEST_CASE("Fuzzy matching enum names", "[find_fuzzy]") {
+TEST_CASE("Fuzzy mach single-character misspellings", "[find_fuzzy]") {
     using traits = nav::enum_traits<CommonWords>;
 
     REQUIRE(traits::values[traits::find_fuzzy("abutt")] == CommonWords::About);
@@ -77,5 +77,58 @@ TEST_CASE("Fuzzy matching enum names", "[find_fuzzy]") {
 
         REQUIRE(traits::distance_metric(str, name) <= 1);
         REQUIRE(traits::distance_metric(str, traits::names[found_i]) <= 1);
+    }
+}
+
+TEST_CASE("Fuzzy mach two-character misspellings", "[find_fuzzy]") {
+    using traits = nav::enum_traits<CommonWords>;
+
+    REQUIRE(traits::values[traits::find_fuzzy("abutt")] == CommonWords::About);
+
+    enum EditKind { Insert, Delete, Substitute };
+    std::mt19937_64 rng;
+
+    std::uniform_int_distribution<char> letter_dist('a', 'z');
+    std::uniform_int_distribution<> edit_dist(0, 2);
+
+    using index_dist_t = std::uniform_int_distribution<size_t>;
+    for (size_t i = 0; i < traits::count; i++) {
+        std::string_view name = traits::names[i];
+        auto str = std::string(name);
+        auto index_dist = index_dist_t(0, name.size() - 1);
+
+        int index = index_dist(rng);
+        switch (EditKind(edit_dist(rng))) {
+            case Insert:
+                str.insert(str.begin() + index, letter_dist(rng));
+                break;
+            case Delete: str.erase(str.begin() + index); break;
+            case Substitute: str[index] = letter_dist(rng); break;
+        }
+        // Update the index distribution based on the new size of the string
+        index_dist.param(index_dist_t::param_type(0, str.size() - 1));
+        index = index_dist(rng);
+        switch (EditKind(edit_dist(rng))) {
+            case Insert:
+                str.insert(str.begin() + index, letter_dist(rng));
+                break;
+            case Delete: str.erase(str.begin() + index); break;
+            case Substitute: str[index] = letter_dist(rng); break;
+        }
+        size_t found_i = traits::find_fuzzy(str);
+        INFO(fmt::format(
+            "Search string: '{}'\n"
+            "Original name: '{}'\n"
+            "Found name:    '{}'\n"
+            "Dist between search and original: {}\n"
+            "Dist between search and discovered: {}\n",
+            str,
+            name,
+            traits::names[found_i],
+            traits::distance_metric(name, str),
+            traits::distance_metric(traits::names[found_i], str)));
+
+        REQUIRE(traits::distance_metric(str, name) <= 2);
+        REQUIRE(traits::distance_metric(str, traits::names[found_i]) <= 2);
     }
 }
