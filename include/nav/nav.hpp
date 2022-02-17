@@ -23,6 +23,13 @@
 
 
 namespace nav::impl {
+constexpr auto to_lower = [](char ch) -> char {
+    if ('A' <= ch && ch <= 'Z') {
+        return ch - 'A' + 'a';
+    } else {
+        return ch;
+    }
+};
 template <class Key, class Value, class BaseT, BaseT Min, BaseT Max>
 class indexed_map {
     constexpr static size_t ArraySize = Max - Min + 1;
@@ -483,13 +490,7 @@ struct enum_traits : impl::traits_impl<Enum> {};
             '\0');                                                             \
         constexpr static auto lowercase_name_block = map_array(                \
             name_block,                                                        \
-            [](char ch) -> char {                                              \
-                if ('A' <= ch && ch <= 'Z') {                                  \
-                    return ch - 'A' + 'a';                                     \
-                } else {                                                       \
-                    return ch;                                                 \
-                }                                                              \
-            });                                                                \
+            to_lower);                                                         \
                                                                                \
        public:                                                                 \
         /* A list of all the names in the enum, in declaration order */        \
@@ -520,6 +521,50 @@ struct enum_traits : impl::traits_impl<Enum> {};
             names_to_values = binary_map<std::string_view, EnumType, count>(   \
                 names,                                                         \
                 values);                                                       \
+        constexpr static auto lowercase_names_to_values =                      \
+            binary_map<std::string_view, EnumType, count>(                     \
+                lowercase_names,                                               \
+                values);                                                       \
+        constexpr static std::optional<EnumType> get_value(                    \
+            std::string_view name) {                                           \
+            return names_to_values[name];                                      \
+        }                                                                      \
+        constexpr static EnumType get_value(                                   \
+            std::string_view name,                                             \
+            EnumType alternative) {                                            \
+            return names_to_values.get(name, alternative);                     \
+        }                                                                      \
+        constexpr static std::optional<EnumType> get_value_ignore_case(        \
+            std::string_view name) {                                           \
+            if (name.size() > max_name_length) {                               \
+                return std::nullopt;                                           \
+            } else {                                                           \
+                char buffer[max_name_length + 1];                              \
+                for (size_t i = 0; i < name.size(); i++) {                     \
+                    buffer[i] = to_lower(name[i]);                             \
+                }                                                              \
+                buffer[names.size()] = '\0';                                   \
+                return lowercase_names_to_values[std::string_view(             \
+                    buffer,                                                    \
+                    names.size())];                                            \
+            }                                                                  \
+        }                                                                      \
+        constexpr static EnumType get_value_ignore_case(                       \
+            std::string_view name,                                             \
+            EnumType alternative) {                                            \
+            if (name.size() > max_name_length) {                               \
+                return alternative;                                            \
+            } else {                                                           \
+                char buffer[max_name_length + 1];                              \
+                for (size_t i = 0; i < name.size(); i++) {                     \
+                    buffer[i] = to_lower(name[i]);                             \
+                }                                                              \
+                buffer[names.size()] = '\0';                                   \
+                return lowercase_names_to_values.get(                          \
+                    std::string_view(buffer, names.size()),                    \
+                    alternative);                                              \
+            }                                                                  \
+        }                                                                      \
         constexpr static std::optional<std::string_view> get_name(             \
             EnumType value) {                                                  \
             return values_to_names[value];                                     \
@@ -530,4 +575,4 @@ struct enum_traits : impl::traits_impl<Enum> {};
             return values_to_names.get(value, alternative);                    \
         }                                                                      \
     };                                                                         \
-    } // namespace nav
+    } // namespace nav::impl
