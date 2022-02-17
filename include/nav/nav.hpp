@@ -20,7 +20,7 @@
 // MAP_OPERATOR(!, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
 
 
-namespace nav {
+namespace nav::impl {
 template <class Key, class BaseT, class Value, BaseT Min, BaseT Max>
 class array_map {
     constexpr static size_t ArraySize = Max - Min + 1;
@@ -128,34 +128,50 @@ constexpr auto split_trim(char const (&str)[StrSize])
     }
     return args;
 }
+template <size_t N>
+constexpr auto get_top_name(char const (&str)[N]) {
+    std::string_view view(str, N - 1);
+    auto pos = view.find_last_of(':');
+    if (pos == view.npos) {
+        return view;
+    } else {
+        return view.substr(pos + 1);
+    }
+}
 
 template <class Enum>
-struct enum_traits {};
+struct traits_impl {};
+} // namespace nav::impl
+
+namespace nav {
+template <class Enum>
+struct enum_traits : impl::traits_impl<Enum> {};
 } // namespace nav
 
 #define STRINGIFY_VARIADIC(count, args...) split_trim<count>(#args)
-#define nav_declare_enum(EnumType, BaseType, ...)                                         \
-    class EnumType : BaseType {                                                \
-        __VA_ARGS__                                                            \
-    };                                                                         \
-    namespace nav {                                                           \
+#define nav_declare_enum(EnumType, BaseType, ...)                              \
+    enum class EnumType : BaseType { __VA_ARGS__ };                            \
+    namespace nav::impl {                                                      \
     constexpr auto operator!(EnumType e) {                                     \
         return EnumAssignmentGuard<EnumType> {e};                              \
     }                                                                          \
-    }                                                                          \
-    namespace nav {                                                           \
     template <>                                                                \
-    struct enum_traits<EnumType> {                                             \
+    struct traits_impl<EnumType> {                                             \
         using enum EnumType;                                                   \
         using base_type = BaseType;                                            \
+        using type = EnumType;                                                 \
+        constexpr static std::string_view qualified_name = #EnumType;          \
+        constexpr static std::string_view name = get_top_name(#EnumType);      \
+        /* A list of all the values in the enum, in declaration order */       \
         constexpr static auto values = std::array {                            \
             MAP_OPERATOR(EnumType, !, __VA_ARGS__)};                           \
         constexpr static auto count = values.size();                           \
+        /* A list of all the names in the enum, in declaration order */        \
         constexpr static auto names = split_trim<count>(#__VA_ARGS__);         \
         constexpr static base_type min = min_base_value<BaseType>(values);     \
         constexpr static base_type max = max_base_value<BaseType>(values);     \
         constexpr static std::string_view get_name(EnumType value) {           \
-            constexpr auto name_map =                                          \
+            constexpr static auto name_map =                                   \
                 array_map<EnumType, base_type, std::string_view, min, max>(    \
                     values,                                                    \
                     names,                                                     \
