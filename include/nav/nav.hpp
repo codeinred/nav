@@ -465,9 +465,8 @@ constexpr size_t bit_ceil_minus_1(size_t i) {
  * @return int the distance
  */
 template <size_t MaxLength>
-constexpr int levenshtein_distance(
-    std::string_view strA,
-    std::string_view strB) {
+constexpr auto levenshtein_distance =
+    [](std::string_view strA, std::string_view strB) -> int {
     // for all i and j, dist[i,j] will hold the Levenshtein distance between
     // the first i characters of s and the first j characters of t
     int dist[MaxLength + 1][MaxLength + 1];
@@ -496,7 +495,27 @@ constexpr int levenshtein_distance(
         }
     }
     return dist[lenA][lenB];
-}
+};
+
+template <size_t MaxLength>
+constexpr auto caseless_levenshtein_distance =
+    [](std::string_view strA, std::string_view strB) -> int {
+    char buffA[MaxLength];
+    char buffB[MaxLength];
+
+    size_t lenA = std::min(MaxLength, strA.size());
+    size_t lenB = std::min(MaxLength, strB.size());
+
+    for (size_t i = 0; i < lenA; i++) {
+        buffA[i] = to_lower(strA[i]);
+    }
+    for (size_t i = 0; i < lenB; i++) {
+        buffB[i] = to_lower(strB[i]);
+    }
+    return levenshtein_distance<MaxLength>(
+        std::string_view(buffA, lenA),
+        std::string_view(buffB, lenB));
+};
 /**
  * @brief Use fuzzy matching to find the index of the option closest to the
  * given value, from an array of options. If two options have the same distance,
@@ -509,11 +528,12 @@ constexpr int levenshtein_distance(
  * @param value the value
  * @return size_t the index of the closest option
  */
-template <size_t MaxLength>
+template <size_t MaxLength, class EditDistance>
 constexpr size_t fuzzy_match(
     std::string_view const* options,
     size_t num_options,
     std::string_view value,
+    EditDistance dist,
     bool use_lowercase = true) {
     char buff[MaxLength];
     if (use_lowercase) {
@@ -526,7 +546,7 @@ constexpr size_t fuzzy_match(
     size_t best_i = std::string_view::npos;
     int best_dist = std::numeric_limits<int>::max();
     for (size_t i = 0; i < num_options; i++) {
-        int current_dist = levenshtein_distance<MaxLength>(options[i], value);
+        int current_dist = dist(options[i], value);
         if (current_dist < best_dist) {
             best_dist = current_dist;
             best_i = i;
@@ -667,6 +687,11 @@ struct enum_traits : impl::traits_impl<Enum> {};
             std::string_view alternative) {                                    \
             return values_to_names.get(value, alternative);                    \
         }                                                                      \
+        /** Distance metric used for fuzzy string matching. Defaults to        \
+         * caseless levenshtein distance (levenshtein distance, ignoring case) \
+         */                                                                    \
+        constexpr static auto distance_metric = caseless_levenshtein_distance< \
+            bit_ceil_minus_1(max_name_length * 2)>;                            \
         /* Return the index of the value whose name most closely matches the   \
          * given name. Compare names based on levenshtein distance. Index is   \
          * in declaration order, so if the return value is i you can get the   \
@@ -675,11 +700,11 @@ struct enum_traits : impl::traits_impl<Enum> {};
         constexpr static size_t find_fuzzy(                                    \
             std::string_view name,                                             \
             bool use_lowercase = true) {                                       \
-            constexpr size_t max_str_len = bit_ceil_minus_1(max_name_length);  \
-            return fuzzy_match<max_str_len>(                                   \
+            return fuzzy_match<bit_ceil_minus_1(max_name_length * 2)>(         \
                 use_lowercase ? lowercase_names.data() : names.data(),         \
                 count,                                                         \
                 name,                                                          \
+                distance_metric,                                               \
                 use_lowercase);                                                \
         }                                                                      \
     };                                                                         \
