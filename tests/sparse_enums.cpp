@@ -107,20 +107,25 @@ nav_declare_enum(
     F89 = int64_t(F88) + int64_t(F87),
     F90 = int64_t(F89) + int64_t(F88),
     F91 = int64_t(F90) + int64_t(F89),
-    F92 = int64_t(F91) + int64_t(F90), );
+    F92 = int64_t(F91) + int64_t(F90));
 
-TEST_CASE("Hello Tests") {
+TEST_CASE("Test sparse enum", "[sparse-enum][fib]") {
 
     using traits = nav::enum_traits<FooBar::FibonacciNumbers>;
 
-    fmt::print("Max name length: {}\n", traits::max_name_length);
     using enum FooBar::FibonacciNumbers;
-    static_assert(F1 <= F2);
-    for (auto value : traits::values) {
-        fmt::print(
-            "{0}({1}) == {0}::{2}\n",
-            traits::name,
-            int64_t(value),
-            traits::get_name(value, "<unnamed>"));
+    int64_t fib = 0, fib_next = 1;
+
+    REQUIRE(*traits::get_value("F0") == F0);
+    REQUIRE(*traits::get_value("F1") == F1);
+    REQUIRE(*traits::get_value("F2") == F2);
+    REQUIRE(*traits::get_value("F3") == F3);
+    REQUIRE(*traits::get_value("F4") == F4);
+
+    for(size_t i = 0; i <= 92; i++) {
+        auto name = fmt::format("F{}", i);
+        INFO(fmt::format("Name of enum: {} / fibonacci number: {}", name, fib));
+        REQUIRE(FooBar::FibonacciNumbers(fib) == *traits::get_value(name));
+        fib = std::exchange(fib_next, fib + fib_next);
     }
 }

@@ -100,10 +100,10 @@ if(PROJECT_IS_TOP_LEVEL)
     # Register test_nav as an executable
     add_executable(
         test_nav
-        tests/test_nav.cpp)
+        tests/sparse_enums.cpp)
 
-    # Tell CMake that test_nav should link against nav (our library), fmt, 
-    # and Catch2. We link against Catch2WithMain b/c we're using the main 
+    # Tell CMake that test_nav should link against nav (our library), fmt,
+    # and Catch2. We link against Catch2WithMain b/c we're using the main
     # function provided by Catch2
     target_link_libraries(
         test_nav
