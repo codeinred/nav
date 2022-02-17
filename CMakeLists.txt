@@ -100,6 +100,7 @@ if(PROJECT_IS_TOP_LEVEL)
     # Register test_nav as an executable
     add_executable(
         test_nav
+        tests/fuzzy_match.cpp
         tests/sparse_enums.cpp)
 
     # Tell CMake that test_nav should link against nav (our library), fmt,
