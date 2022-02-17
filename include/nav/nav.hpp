@@ -22,14 +22,14 @@
 
 namespace nav::impl {
 template <class Key, class BaseT, class Value, BaseT Min, BaseT Max>
-class array_map {
+class indexed_map {
     constexpr static size_t ArraySize = Max - Min + 1;
     std::array<Value, ArraySize> values;
     Value default_value;
 
    public:
     template <size_t N>
-    constexpr array_map(
+    constexpr indexed_map(
         std::array<Key, N> const& keys,
         std::array<Value, N> const& values,
         Value default_value)
@@ -170,13 +170,13 @@ struct enum_traits : impl::traits_impl<Enum> {};
         constexpr static auto names = split_trim<count>(#__VA_ARGS__);         \
         constexpr static base_type min = min_base_value<BaseType>(values);     \
         constexpr static base_type max = max_base_value<BaseType>(values);     \
+        constexpr static auto values_to_names =                                \
+            indexed_map<EnumType, base_type, std::string_view, min, max>(      \
+                values,                                                        \
+                names,                                                         \
+                "<unnamed>");                                                  \
         constexpr static std::string_view get_name(EnumType value) {           \
-            constexpr static auto name_map =                                   \
-                array_map<EnumType, base_type, std::string_view, min, max>(    \
-                    values,                                                    \
-                    names,                                                     \
-                    "<unnamed>");                                              \
-            return name_map[value];                                            \
+            return values_to_names[value];                                     \
         }                                                                      \
     };                                                                         \
     } // namespace nav
