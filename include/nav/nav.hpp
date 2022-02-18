@@ -557,11 +557,138 @@ constexpr size_t fuzzy_match(
 } // namespace nav::impl
 
 namespace nav {
-template <class Enum>
-struct enum_traits : impl::traits_impl<Enum> {};
+template <class EnumType>
+struct enum_traits : private impl::traits_impl<EnumType> {
+   private:
+    using super = impl::traits_impl<EnumType>;
+
+   public:
+    using enum_type = EnumType;
+    using base_type = typename super::base_type;
+    using super::values;
+    constexpr static auto count = values.size();
+    constexpr static auto name_lengths = impl::map_array(
+        super::names_raw,
+        [](std::string_view name) { return name.size(); });
+
+   private:
+    constexpr static size_t name_block_buffer_size = count
+                                                   + impl::fold(
+                                                         name_lengths.data(),
+                                                         count,
+                                                         0,
+                                                         [](size_t acc,
+                                                            size_t elem) {
+                                                             return acc + elem;
+                                                         });
+    constexpr static auto name_block = impl::static_cat<name_block_buffer_size>(
+        super::names_raw,
+        '\0');
+    constexpr static auto lowercase_name_block = map_array(
+        name_block,
+        impl::to_lower);
+
+   public:
+    /* A list of all the names in the enum, in declaration order */
+    constexpr static auto names = impl::split_by_lengths_assuming_sep(
+        name_lengths,
+        name_block.data());
+
+   public:
+    /* All the enum names, but lowercase. Provided to support lookup
+     * operations that ignore case. */
+    constexpr static auto lowercase_names = impl::split_by_lengths_assuming_sep(
+        name_lengths,
+        lowercase_name_block.data());
+    constexpr static size_t max_name_length = count == 0
+                                                ? 0
+                                                : *std::max_element(
+                                                    name_lengths.data(),
+                                                    name_lengths.data()
+                                                        + count);
+    constexpr static base_type min = impl::min_base_value<base_type>(values);
+    constexpr static base_type max = impl::max_base_value<base_type>(values);
+    constexpr static auto values_to_names = impl::
+        select_map<EnumType, std::string_view, count, base_type, min, max>(
+            values,
+            names,
+            "<unnamed>");
+    constexpr static auto
+        names_to_values = impl::binary_map<std::string_view, EnumType, count>(
+            names,
+            values);
+    constexpr static auto lowercase_names_to_values = impl::
+        binary_map<std::string_view, EnumType, count>(lowercase_names, values);
+    constexpr static std::optional<EnumType> get_value(std::string_view name) {
+        return names_to_values[name];
+    }
+    constexpr static EnumType get_value(
+        std::string_view name,
+        EnumType alternative) {
+        return names_to_values.get(name, alternative);
+    }
+    constexpr static std::optional<EnumType> get_value_ignore_case(
+        std::string_view name) {
+        if (name.size() > max_name_length) {
+            return std::nullopt;
+        } else {
+            char buffer[max_name_length + 1];
+            for (size_t i = 0; i < name.size(); i++) {
+                buffer[i] = impl::to_lower(name[i]);
+            }
+            buffer[name.size()] = '\0';
+            return lowercase_names_to_values[std::string_view(
+                buffer,
+                names.size())];
+        }
+    }
+    constexpr static EnumType get_value_ignore_case(
+        std::string_view name,
+        EnumType alternative) {
+        if (name.size() > max_name_length) {
+            return alternative;
+        } else {
+            char buffer[max_name_length + 1];
+            for (size_t i = 0; i < name.size(); i++) {
+                buffer[i] = impl::to_lower(name[i]);
+            }
+            buffer[name.size()] = '\0';
+            return lowercase_names_to_values.get(
+                std::string_view(buffer, names.size()),
+                alternative);
+        }
+    }
+    constexpr static std::optional<std::string_view> get_name(EnumType value) {
+        return values_to_names[value];
+    }
+    constexpr static std::string_view get_name(
+        EnumType value,
+        std::string_view alternative) {
+        return values_to_names.get(value, alternative);
+    }
+    /** Distance metric used for fuzzy string matching. Defaults to
+     * caseless levenshtein distance (levenshtein distance, ignoring case)
+     */
+    constexpr static auto distance_metric = impl::caseless_levenshtein_distance<
+        impl::bit_ceil_minus_1(max_name_length * 2)>;
+    /* Return the index of the value whose name most closely matches the
+     * given name. Compare names based on levenshtein distance. Index is
+     * in declaration order, so if the return value is i you can get the
+     * corresponding value with values[i] and the corresponding name with
+     * names[i]. Converts inputs and names to lowercase by default.*/
+    constexpr static size_t find_fuzzy(
+        std::string_view name,
+        bool use_lowercase = true) {
+        return impl::fuzzy_match<impl::bit_ceil_minus_1(max_name_length * 2)>(
+            use_lowercase ? lowercase_names.data() : names.data(),
+            count,
+            name,
+            distance_metric,
+            use_lowercase);
+    }
+};
 } // namespace nav
 
-#define STRINGIFY_VARIADIC(count, args...) split_trim<count>(#args)
 #define nav_declare_enum(EnumType, BaseType, ...)                              \
     enum class EnumType : BaseType { __VA_ARGS__ };                            \
     namespace nav::impl {                                                      \
@@ -570,142 +697,17 @@ struct enum_traits : impl::traits_impl<Enum> {};
     }                                                                          \
     template <>                                                                \
     struct traits_impl<EnumType> {                                             \
-        using enum EnumType;                                                   \
+        friend class ::nav::enum_traits<EnumType>;                             \
         using base_type = BaseType;                                            \
-        using type = EnumType;                                                 \
+        using enum EnumType;                                                   \
         constexpr static std::string_view qualified_name = #EnumType;          \
         constexpr static std::string_view name = get_top_name(#EnumType);      \
         /* A list of all the values in the enum, in declaration order */       \
         constexpr static auto values = std::array {                            \
             MAP_OPERATOR(EnumType, !, __VA_ARGS__)};                           \
-        constexpr static auto count = values.size();                           \
                                                                                \
        private:                                                                \
-        constexpr static auto names_raw = split_trim<count>(#__VA_ARGS__);     \
-                                                                               \
-       public:                                                                 \
-        constexpr static auto name_lengths = map_array(                        \
-            names_raw,                                                         \
-            [](std::string_view name) { return name.size(); });                \
-                                                                               \
-       private:                                                                \
-        constexpr static size_t                                                \
-            name_block_buffer_size = count                                     \
-                                   + fold(                                     \
-                                         name_lengths.data(),                  \
-                                         count,                                \
-                                         0,                                    \
-                                         [](size_t acc, size_t elem) {         \
-                                             return acc + elem;                \
-                                         });                                   \
-        constexpr static auto name_block = static_cat<name_block_buffer_size>( \
-            names_raw,                                                         \
-            '\0');                                                             \
-        constexpr static auto lowercase_name_block = map_array(                \
-            name_block,                                                        \
-            to_lower);                                                         \
-                                                                               \
-       public:                                                                 \
-        /* A list of all the names in the enum, in declaration order */        \
-        constexpr static auto names = split_by_lengths_assuming_sep(           \
-            name_lengths,                                                      \
-            name_block.data());                                                \
-        /* All the enum names, but lowercase. Provided to support lookup       \
-         * operations that ignore case. */                                     \
-        constexpr static auto lowercase_names = split_by_lengths_assuming_sep( \
-            name_lengths,                                                      \
-            lowercase_name_block.data());                                      \
-        constexpr static size_t max_name_length = count == 0                   \
-                                                    ? 0                        \
-                                                    : *std::max_element(       \
-                                                        name_lengths.data(),   \
-                                                        name_lengths.data()    \
-                                                            + count);          \
-        constexpr static base_type min = min_base_value<BaseType>(values);     \
-        constexpr static base_type max = max_base_value<BaseType>(values);     \
-        constexpr static auto values_to_names = select_map<                    \
-            EnumType,                                                          \
-            std::string_view,                                                  \
-            count,                                                             \
-            base_type,                                                         \
-            min,                                                               \
-            max>(values, names, "<unnamed>");                                  \
-        constexpr static auto                                                  \
-            names_to_values = binary_map<std::string_view, EnumType, count>(   \
-                names,                                                         \
-                values);                                                       \
-        constexpr static auto lowercase_names_to_values =                      \
-            binary_map<std::string_view, EnumType, count>(                     \
-                lowercase_names,                                               \
-                values);                                                       \
-        constexpr static std::optional<EnumType> get_value(                    \
-            std::string_view name) {                                           \
-            return names_to_values[name];                                      \
-        }                                                                      \
-        constexpr static EnumType get_value(                                   \
-            std::string_view name,                                             \
-            EnumType alternative) {                                            \
-            return names_to_values.get(name, alternative);                     \
-        }                                                                      \
-        constexpr static std::optional<EnumType> get_value_ignore_case(        \
-            std::string_view name) {                                           \
-            if (name.size() > max_name_length) {                               \
-                return std::nullopt;                                           \
-            } else {                                                           \
-                char buffer[max_name_length + 1];                              \
-                for (size_t i = 0; i < name.size(); i++) {                     \
-                    buffer[i] = to_lower(name[i]);                             \
-                }                                                              \
-                buffer[name.size()] = '\0';                                    \
-                return lowercase_names_to_values[std::string_view(             \
-                    buffer,                                                    \
-                    names.size())];                                            \
-            }                                                                  \
-        }                                                                      \
-        constexpr static EnumType get_value_ignore_case(                       \
-            std::string_view name,                                             \
-            EnumType alternative) {                                            \
-            if (name.size() > max_name_length) {                               \
-                return alternative;                                            \
-            } else {                                                           \
-                char buffer[max_name_length + 1];                              \
-                for (size_t i = 0; i < name.size(); i++) {                     \
-                    buffer[i] = to_lower(name[i]);                             \
-                }                                                              \
-                buffer[name.size()] = '\0';                                    \
-                return lowercase_names_to_values.get(                          \
-                    std::string_view(buffer, names.size()),                    \
-                    alternative);                                              \
-            }                                                                  \
-        }                                                                      \
-        constexpr static std::optional<std::string_view> get_name(             \
-            EnumType value) {                                                  \
-            return values_to_names[value];                                     \
-        }                                                                      \
-        constexpr static std::string_view get_name(                            \
-            EnumType value,                                                    \
-            std::string_view alternative) {                                    \
-            return values_to_names.get(value, alternative);                    \
-        }                                                                      \
-        /** Distance metric used for fuzzy string matching. Defaults to        \
-         * caseless levenshtein distance (levenshtein distance, ignoring case) \
-         */                                                                    \
-        constexpr static auto distance_metric = caseless_levenshtein_distance< \
-            bit_ceil_minus_1(max_name_length * 2)>;                            \
-        /* Return the index of the value whose name most closely matches the   \
-         * given name. Compare names based on levenshtein distance. Index is   \
-         * in declaration order, so if the return value is i you can get the   \
-         * corresponding value with values[i] and the corresponding name with  \
-         * names[i]. Converts inputs and names to lowercase by default.*/      \
-        constexpr static size_t find_fuzzy(                                    \
-            std::string_view name,                                             \
-            bool use_lowercase = true) {                                       \
-            return fuzzy_match<bit_ceil_minus_1(max_name_length * 2)>(         \
-                use_lowercase ? lowercase_names.data() : names.data(),         \
-                count,                                                         \
-                name,                                                          \
-                distance_metric,                                               \
-                use_lowercase);                                                \
-        }                                                                      \
+        constexpr static auto names_raw = split_trim<values.size()>(           \
+            #__VA_ARGS__);                                                     \
     };                                                                         \
     } // namespace nav::impl
