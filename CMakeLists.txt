@@ -20,7 +20,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 target_compile_features(
     nav
     INTERFACE
-    cxx_std_20
+    cxx_std_17
 )
 
 target_include_directories(

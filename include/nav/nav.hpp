@@ -1,12 +1,7 @@
 #pragma once
-#include <algorithm>
 #include <array>
-#include <bit>
-#include <limits>
 #include <optional>
 #include <string_view>
-#include <type_traits>
-#include <utility>
 
 #define PARENS ()
 #define EXPAND(...) EXPAND4(EXPAND4(EXPAND4(__VA_ARGS__)))
@@ -21,10 +16,41 @@
     func(op a1), __VA_OPT__(MAP_OPERATOR_AGAIN PARENS(func, op, __VA_ARGS__))
 #define MAP_OPERATOR_AGAIN() MAP_OPERATOR_HELPER
 
-// MAP_OPERATOR(!, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
-
 
 namespace nav::impl {
+template <size_t N, class T>
+constexpr T max_elem(T const* ptr) {
+    if constexpr (N == 0) {
+        return T {};
+    } else {
+        T max = ptr[0];
+        for (size_t i = 1; i < N; i++) {
+            if (ptr[i] > max) {
+                max = ptr[i];
+            }
+        }
+        return max;
+    }
+}
+template <class T>
+constexpr auto compare(T a, T b) {
+    if (a < b) {
+        return -1;
+    } else if (a > b) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+constexpr auto compare(std::string_view a, std::string_view b) {
+    return a.compare(b);
+}
+template <class T>
+constexpr void swap(T& a, T& b) {
+    auto Tmp = static_cast<T&&>(a);
+    a = static_cast<T&&>(b);
+    b = static_cast<T&&>(Tmp);
+}
 constexpr auto to_lower = [](char ch) -> char {
     if ('A' <= ch && ch <= 'Z') {
         return ch - 'A' + 'a';
@@ -91,6 +117,56 @@ class indexed_map {
 // Stably sorts and de-duplicates an array, returning a new number of elements
 // stably sorted with duplicates removed
 template <size_t N, class T, class Cmp>
+constexpr void sort(T* values, Cmp less) {
+    if constexpr (N <= 1)
+        return;
+    else if constexpr (N == 2) {
+        auto &a = values[0], b = values[1];
+        if (less(b, a)) {
+            impl::swap(a, b);
+        }
+        return;
+    } else {
+        sort<N / 2>(values, less);
+        sort<N - N / 2>(values + N / 2, less);
+        size_t first_half = N / 2;
+        size_t second_half = N - N / 2;
+
+        T buffer[N] {};
+
+        T* a1 = values;
+        T* a2 = values + N / 2;
+        size_t i1 = 0, i2 = 0, dest = 0;
+        for (;;) {
+            // If either array is out of elements, copy the remaining elements
+            // and then break
+            if (i1 == first_half) {
+                while (i2 < second_half) {
+                    buffer[dest++] = a2[i2++];
+                }
+                break;
+            } else if (i2 == second_half) {
+                while (i1 < first_half) {
+                    buffer[dest++] = a1[i1++];
+                }
+                break;
+            } else {
+                if (less(a2[i1], a1[i2])) {
+                    buffer[dest++] = a2[i1++];
+                } else {
+                    buffer[dest++] = a1[i2++];
+                }
+            }
+        }
+        // Copy the elements back from buffer to the original array
+        for (size_t i = 0; i < dest; i++) {
+            values[i] = buffer[i];
+        }
+    }
+}
+// Stably sorts and de-duplicates an array, returning a new number of elements
+// stably sorted with duplicates removed
+template <size_t N, class T, class Cmp>
 constexpr size_t sort_dedup(T* values, Cmp less) {
     if constexpr (N <= 1)
         return N;
@@ -100,7 +176,7 @@ constexpr size_t sort_dedup(T* values, Cmp less) {
         if (less(a, b)) {
             return N;
         } else if (less(b, a)) {
-            std::swap(a, b);
+            impl::swap(a, b);
             return N;
         } else {
             // We return 1 b/c we're discarding B
@@ -179,7 +255,7 @@ class binary_dedup_map {
         size_t min = 0, max = count, i = count / 2;
         while (max - min > 1) {
             auto entry_key = entries[i];
-            auto cmp = key <=> entries[i].key;
+            auto cmp = impl::compare(key, entries[i].key);
             if (cmp == 0) {
                 return true;
             }
@@ -206,7 +282,7 @@ class binary_dedup_map {
         size_t min = 0, max = count, i = count / 2;
         while (max - min > 1) {
             auto entry_key = entries[i];
-            auto cmp = key <=> entries[i].key;
+            auto cmp = impl::compare(key, entries[i].key);
             if (cmp == 0) {
                 return entries[i].value;
             }
@@ -243,16 +319,15 @@ class binary_map {
         }
         // Stably sort and deduplicate entries. Compute count to be the number
         // of entries after deduplication
-        std::sort(
-            entries.data(),
-            entries.data() + N,
-            [](auto const& e1, auto const& e2) { return e1.key < e2.key; });
+        impl::sort<N>(entries.data(), [](auto const& e1, auto const& e2) {
+            return e1.key < e2.key;
+        });
     }
     constexpr bool contains(Key key) const {
         size_t min = 0, max = N, i = N / 2;
         while (max - min > 1) {
             auto entry_key = entries[i];
-            auto cmp = key <=> entries[i].key;
+            auto cmp = impl::compare(key, entries[i].key);
             if (cmp == 0) {
                 return true;
             }
@@ -279,7 +354,7 @@ class binary_map {
         size_t min = 0, max = N, i = N / 2;
         while (max - min > 1) {
             auto entry_key = entries[i];
-            auto cmp = key <=> entries[i].key;
+            auto cmp = impl::compare(key, entries[i].key);
             if (cmp == 0) {
                 return entries[i].value;
             }
@@ -340,7 +415,8 @@ template <class EnumType>
 struct EnumAssignmentGuard {
     EnumType value;
 
-    constexpr auto operator=(auto&&) const {
+    template <class T>
+    constexpr auto operator=(T&&) const {
         return EnumAssignmentGuard {value};
     }
     constexpr operator EnumType() const {
@@ -427,7 +503,7 @@ template <
     class Ret = decltype(std::declval<F>()(std::declval<T>()))>
 constexpr auto map_array(std::array<T, N> const& arr, F func)
     -> std::array<Ret, N> {
-    std::array<Ret, N> result;
+    std::array<Ret, N> result {};
     for (size_t i = 0; i < N; i++) {
         result[i] = func(arr[i]);
     }
@@ -450,7 +526,12 @@ struct traits_impl {};
  * @return constexpr size_t
  */
 constexpr size_t bit_ceil_minus_1(size_t i) {
-    return std::bit_ceil(i + 1) - 1;
+    size_t ceil = 0;
+    while (ceil < i) {
+        ceil <<= 1;
+        ceil |= 1;
+    }
+    return ceil;
 }
 /**
  * @brief Compute the Levenshtein distance through MaxLength (this should be
@@ -544,7 +625,7 @@ constexpr size_t fuzzy_match(
         value = std::string_view(buff, N);
     }
     size_t best_i = std::string_view::npos;
-    int best_dist = std::numeric_limits<int>::max();
+    size_t best_dist = ~(size_t)0;
     for (size_t i = 0; i < num_options; i++) {
         int current_dist = dist(options[i], value);
         if (current_dist < best_dist) {
@@ -600,12 +681,8 @@ struct enum_traits : private impl::traits_impl<EnumType> {
     constexpr static auto lowercase_names = impl::split_by_lengths_assuming_sep(
         name_lengths,
         lowercase_name_block.data());
-    constexpr static size_t max_name_length = count == 0
-                                                ? 0
-                                                : *std::max_element(
-                                                    name_lengths.data(),
-                                                    name_lengths.data()
-                                                        + count);
+    constexpr static size_t max_name_length = impl::max_elem<count>(
+                                                    name_lengths.data());
     constexpr static base_type min = impl::min_base_value<base_type>(values);
     constexpr static base_type max = impl::max_base_value<base_type>(values);
     constexpr static auto values_to_names = impl::
