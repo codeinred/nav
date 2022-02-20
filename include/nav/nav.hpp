@@ -522,18 +522,6 @@ constexpr auto max_base_value(std::array<T, N> const& arr) -> BaseT {
         return max_value;
     }
 }
-template <class EnumType>
-struct EnumAssignmentGuard {
-    EnumType value;
-
-    template <class T>
-    constexpr auto operator=(T&&) const {
-        return EnumAssignmentGuard {value};
-    }
-    constexpr operator EnumType() const {
-        return value;
-    }
-};
 template <class T, class... Args>
 constexpr auto make_array(Args&&... args) -> std::array<T, sizeof...(args)> {
     return {static_cast<Args&&>(args)...};
@@ -880,9 +868,6 @@ struct enum_traits : private impl::traits_impl<EnumType> {
 #define nav_declare_enum(EnumType, BaseType, ...)                              \
     enum class EnumType : BaseType { __VA_ARGS__ };                            \
     namespace nav::impl {                                                      \
-    constexpr auto operator!(EnumType e) {                                     \
-        return EnumAssignmentGuard<EnumType> {e};                              \
-    }                                                                          \
     template <>                                                                \
     struct traits_impl<EnumType> {                                             \
         friend class ::nav::enum_traits<EnumType>;                             \
