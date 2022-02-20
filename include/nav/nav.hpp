@@ -258,21 +258,21 @@ class binary_dedup_map {
             [](auto const& e1, auto const& e2) { return e1.key < e2.key; });
     }
     constexpr bool contains(Key key) const {
-        size_t min = 0, max = count, i = count / 2;
-        while (max - min > 1) {
-            auto entry_key = entries[i];
-            auto cmp = impl::compare(key, entries[i].key);
-            if (cmp == 0) {
+        size_t lower_i = 0;
+        size_t upper_i = count - 1;
+        while (lower_i <= upper_i) {
+            size_t i = (lower_i + upper_i) / 2;
+            int cmp = impl::compare(entries[i].key, key);
+
+            if (cmp < 0) {
+                lower_i = i + 1;
+            } else if (cmp > 0) {
+                upper_i = i - 1;
+            } else {
                 return true;
             }
-            if (cmp < 0) {
-                max = i;
-            } else {
-                min = i;
-            }
-            i = (max + min) / 2;
         }
-        return entries[i].key == key;
+        return false;
     }
     constexpr auto get(Key key) const -> std::optional<Value> {
         return (*this)[key];
@@ -285,22 +285,21 @@ class binary_dedup_map {
         }
     }
     constexpr auto operator[](Key key) const -> std::optional<Value> {
-        size_t min = 0, max = count, i = count / 2;
-        while (max - min > 1) {
-            auto entry_key = entries[i];
-            auto cmp = impl::compare(key, entries[i].key);
-            if (cmp == 0) {
+        size_t lower_i = 0;
+        size_t upper_i = count - 1;
+        while (lower_i <= upper_i) {
+            size_t i = (lower_i + upper_i) / 2;
+            int cmp = impl::compare(entries[i].key, key);
+
+            if (cmp < 0) {
+                lower_i = i + 1;
+            } else if (cmp > 0) {
+                upper_i = i - 1;
+            } else {
                 return entries[i].value;
             }
-            if (cmp < 0) {
-                max = i;
-            } else {
-                min = i;
-            }
-            i = (max + min) / 2;
         }
-        return entries[i].key == key ? std::optional<Value> {entries[i].value}
-                                     : std::nullopt;
+        return std::nullopt;
     }
 };
 
@@ -330,21 +329,21 @@ class binary_map {
         });
     }
     constexpr bool contains(Key key) const {
-        size_t min = 0, max = N, i = N / 2;
-        while (max - min > 1) {
-            auto entry_key = entries[i];
-            auto cmp = impl::compare(key, entries[i].key);
-            if (cmp == 0) {
+        size_t lower_i = 0;
+        size_t upper_i = N - 1;
+        while (lower_i <= upper_i) {
+            size_t i = (lower_i + upper_i) / 2;
+            int cmp = impl::compare(entries[i].key, key);
+
+            if (cmp < 0) {
+                lower_i = i + 1;
+            } else if (cmp > 0) {
+                upper_i = i - 1;
+            } else {
                 return true;
             }
-            if (cmp < 0) {
-                max = i;
-            } else {
-                min = i;
-            }
-            i = (max + min) / 2;
         }
-        return entries[i].key == key;
+        return false;
     }
     constexpr auto get(Key key) const -> std::optional<Value> {
         return (*this)[key];
@@ -357,22 +356,21 @@ class binary_map {
         }
     }
     constexpr auto operator[](Key key) const -> std::optional<Value> {
-        size_t min = 0, max = N, i = N / 2;
-        while (max - min > 1) {
-            auto entry_key = entries[i];
-            auto cmp = impl::compare(key, entries[i].key);
-            if (cmp == 0) {
+        size_t lower_i = 0;
+        size_t upper_i = N - 1;
+        while (lower_i <= upper_i) {
+            size_t i = (lower_i + upper_i) / 2;
+            int cmp = impl::compare(entries[i].key, key);
+
+            if (cmp < 0) {
+                lower_i = i + 1;
+            } else if (cmp > 0) {
+                upper_i = i - 1;
+            } else {
                 return entries[i].value;
             }
-            if (cmp < 0) {
-                max = i;
-            } else {
-                min = i;
-            }
-            i = (max + min) / 2;
         }
-        return entries[i].key == key ? std::optional<Value> {entries[i].value}
-                                     : std::nullopt;
+        return std::nullopt;
     }
 
     constexpr view<Entry> get_entries() const {
