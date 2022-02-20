@@ -179,7 +179,7 @@ TEST_CASE("Test name lookup", "[sparse-enum][fib][name-lookup]") {
 
     using FooBar::FibonacciNumbers;
 
-    for (size_t i = 0; i < traits::count; i++) {
+    for (size_t i = 0; i < traits::size; i++) {
         INFO(fmt::format(
             "i = {}, traits::names[i] = {}, traits::values[i] = {}",
             i,

@@ -747,16 +747,16 @@ struct enum_traits : private impl::traits_impl<EnumType> {
     using enum_type = EnumType;
     using base_type = typename super::base_type;
     using super::values;
-    constexpr static auto count = values.size();
+    constexpr static auto size = values.size();
     constexpr static auto name_lengths = impl::map_array(
         super::names_raw,
         [](std::string_view name) { return name.size(); });
 
    private:
-    constexpr static size_t name_block_buffer_size = count
+    constexpr static size_t name_block_buffer_size = size
                                                    + impl::fold(
                                                          name_lengths.data(),
-                                                         count,
+                                                         size,
                                                          0,
                                                          [](size_t acc,
                                                             size_t elem) {
@@ -781,21 +781,21 @@ struct enum_traits : private impl::traits_impl<EnumType> {
     constexpr static auto lowercase_names = impl::split_by_lengths_assuming_sep(
         name_lengths,
         lowercase_name_block.data());
-    constexpr static size_t max_name_length = impl::max_elem<count>(
+    constexpr static size_t max_name_length = impl::max_elem<size>(
         name_lengths.data());
     constexpr static base_type min = impl::min_base_value<base_type>(values);
     constexpr static base_type max = impl::max_base_value<base_type>(values);
     constexpr static auto values_to_names = impl::
-        select_map<EnumType, std::string_view, count, base_type, min, max>(
+        select_map<EnumType, std::string_view, size, base_type, min, max>(
             values,
             names,
             "<unnamed>");
     constexpr static auto
-        names_to_values = impl::binary_map<std::string_view, EnumType, count>(
+        names_to_values = impl::binary_map<std::string_view, EnumType, size>(
             names,
             values);
     constexpr static auto lowercase_names_to_values = impl::
-        binary_map<std::string_view, EnumType, count>(lowercase_names, values);
+        binary_map<std::string_view, EnumType, size>(lowercase_names, values);
     constexpr static std::optional<EnumType> get_value(std::string_view name) {
         return names_to_values[name];
     }
@@ -858,7 +858,7 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         bool use_lowercase = true) {
         return impl::fuzzy_match<impl::bit_ceil_minus_1(max_name_length * 2)>(
             use_lowercase ? lowercase_names.data() : names.data(),
-            count,
+            size,
             name,
             distance_metric,
             use_lowercase);

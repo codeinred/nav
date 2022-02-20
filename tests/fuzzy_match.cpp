@@ -49,7 +49,7 @@ TEST_CASE("Fuzzy mach single-character misspellings", "[find_fuzzy]") {
 
     std::uniform_int_distribution<char> letter_dist('a', 'z');
     std::uniform_int_distribution<> edit_dist(0, 2);
-    for (size_t i = 0; i < traits::count; i++) {
+    for (size_t i = 0; i < traits::size; i++) {
         std::string_view name = traits::names[i];
         auto str = std::string(name);
         std::uniform_int_distribution<size_t> index_dist(0, name.size() - 1);
@@ -92,7 +92,7 @@ TEST_CASE("Fuzzy mach two-character misspellings", "[find_fuzzy]") {
     std::uniform_int_distribution<> edit_dist(0, 2);
 
     using index_dist_t = std::uniform_int_distribution<size_t>;
-    for (size_t i = 0; i < traits::count; i++) {
+    for (size_t i = 0; i < traits::size; i++) {
         std::string_view name = traits::names[i];
         auto str = std::string(name);
         auto index_dist = index_dist_t(0, name.size() - 1);
