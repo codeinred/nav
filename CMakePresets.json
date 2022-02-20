@@ -42,6 +42,18 @@
                 "FORCE_DIAGNOSTIC_COLORS": "ON",
                 "CMAKE_CXX_FLAGS": "-stdlib=libc++ -fsanitize=address -fno-omit-frame-pointer -fsanitize-address-use-after-scope"
             }
+        },
+        {
+            "name": "Devel",
+            "displayName": "Configure Devel",
+            "description": "Devel Preset (explicitly enables C++17 for clangd)",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "FORCE_DIAGNOSTIC_COLORS": "ON",
+                "CMAKE_CXX_FLAGS": "-std=c++17 -O2"
+            }
         }
     ],
     "buildPresets": [
@@ -61,6 +73,12 @@
             "name": "Sanitize",
             "configurePreset": "Sanitize",
             "configuration": "Debug",
+            "jobs": 8
+        },
+        {
+            "name": "Devel",
+            "configurePreset": "Devel",
+            "configuration": "Devel",
             "jobs": 8
         }
     ]

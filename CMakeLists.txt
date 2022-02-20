@@ -17,12 +17,6 @@ include(GNUInstallDirs)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-target_compile_features(
-    nav
-    INTERFACE
-    cxx_std_17
-)
-
 target_include_directories(
     nav
     INTERFACE
@@ -102,6 +96,12 @@ if(PROJECT_IS_TOP_LEVEL)
         test_nav
         tests/fuzzy_match.cpp
         tests/sparse_enums.cpp)
+
+    target_compile_features(
+        test_nav
+        INTERFACE
+        cxx_std_17
+    )
 
     # Tell CMake that test_nav should link against nav (our library), fmt,
     # and Catch2. We link against Catch2WithMain b/c we're using the main
