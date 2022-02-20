@@ -1,6 +1,6 @@
 #include <nav/nav.hpp>
-#include <catch2/catch_test_macros.hpp>
 #include <fmt/core.h>
+#include <iostream>
 
 namespace FooBar {
 enum class FibonacciNumbers : int64_t;
@@ -17,115 +17,174 @@ nav_declare_enum(
     int64_t,                  // Base type
     F0 = 0,
     F1 = 1,
-    F2 = int64_t(F1) + int64_t(F0),
-    F3 = int64_t(F2) + int64_t(F1),
-    F4 = int64_t(F3) + int64_t(F2),
-    F5 = int64_t(F4) + int64_t(F3),
-    F6 = int64_t(F5) + int64_t(F4),
-    F7 = int64_t(F6) + int64_t(F5),
-    F8 = int64_t(F7) + int64_t(F6),
-    F9 = int64_t(F8) + int64_t(F7),
-    F10 = int64_t(F9) + int64_t(F8),
-    F11 = int64_t(F10) + int64_t(F9),
-    F12 = int64_t(F11) + int64_t(F10),
-    F13 = int64_t(F12) + int64_t(F11),
-    F14 = int64_t(F13) + int64_t(F12),
-    F15 = int64_t(F14) + int64_t(F13),
-    F16 = int64_t(F15) + int64_t(F14),
-    F17 = int64_t(F16) + int64_t(F15),
-    F18 = int64_t(F17) + int64_t(F16),
-    F19 = int64_t(F18) + int64_t(F17),
-    F20 = int64_t(F19) + int64_t(F18),
-    F21 = int64_t(F20) + int64_t(F19),
-    F22 = int64_t(F21) + int64_t(F20),
-    F23 = int64_t(F22) + int64_t(F21),
-    F24 = int64_t(F23) + int64_t(F22),
-    F25 = int64_t(F24) + int64_t(F23),
-    F26 = int64_t(F25) + int64_t(F24),
-    F27 = int64_t(F26) + int64_t(F25),
-    F28 = int64_t(F27) + int64_t(F26),
-    F29 = int64_t(F28) + int64_t(F27),
-    F30 = int64_t(F29) + int64_t(F28),
-    F31 = int64_t(F30) + int64_t(F29),
-    F32 = int64_t(F31) + int64_t(F30),
-    F33 = int64_t(F32) + int64_t(F31),
-    F34 = int64_t(F33) + int64_t(F32),
-    F35 = int64_t(F34) + int64_t(F33),
-    F36 = int64_t(F35) + int64_t(F34),
-    F37 = int64_t(F36) + int64_t(F35),
-    F38 = int64_t(F37) + int64_t(F36),
-    F39 = int64_t(F38) + int64_t(F37),
-    F40 = int64_t(F39) + int64_t(F38),
-    F41 = int64_t(F40) + int64_t(F39),
-    F42 = int64_t(F41) + int64_t(F40),
-    F43 = int64_t(F42) + int64_t(F41),
-    F44 = int64_t(F43) + int64_t(F42),
-    F45 = int64_t(F44) + int64_t(F43),
-    F46 = int64_t(F45) + int64_t(F44),
-    F47 = int64_t(F46) + int64_t(F45),
-    F48 = int64_t(F47) + int64_t(F46),
-    F49 = int64_t(F48) + int64_t(F47),
-    F50 = int64_t(F49) + int64_t(F48),
-    F51 = int64_t(F50) + int64_t(F49),
-    F52 = int64_t(F51) + int64_t(F50),
-    F53 = int64_t(F52) + int64_t(F51),
-    F54 = int64_t(F53) + int64_t(F52),
-    F55 = int64_t(F54) + int64_t(F53),
-    F56 = int64_t(F55) + int64_t(F54),
-    F57 = int64_t(F56) + int64_t(F55),
-    F58 = int64_t(F57) + int64_t(F56),
-    F59 = int64_t(F58) + int64_t(F57),
-    F60 = int64_t(F59) + int64_t(F58),
-    F61 = int64_t(F60) + int64_t(F59),
-    F62 = int64_t(F61) + int64_t(F60),
-    F63 = int64_t(F62) + int64_t(F61),
-    F64 = int64_t(F63) + int64_t(F62),
-    F65 = int64_t(F64) + int64_t(F63),
-    F66 = int64_t(F65) + int64_t(F64),
-    F67 = int64_t(F66) + int64_t(F65),
-    F68 = int64_t(F67) + int64_t(F66),
-    F69 = int64_t(F68) + int64_t(F67),
-    F70 = int64_t(F69) + int64_t(F68),
-    F71 = int64_t(F70) + int64_t(F69),
-    F72 = int64_t(F71) + int64_t(F70),
-    F73 = int64_t(F72) + int64_t(F71),
-    F74 = int64_t(F73) + int64_t(F72),
-    F75 = int64_t(F74) + int64_t(F73),
-    F76 = int64_t(F75) + int64_t(F74),
-    F77 = int64_t(F76) + int64_t(F75),
-    F78 = int64_t(F77) + int64_t(F76),
-    F79 = int64_t(F78) + int64_t(F77),
-    F80 = int64_t(F79) + int64_t(F78),
-    F81 = int64_t(F80) + int64_t(F79),
-    F82 = int64_t(F81) + int64_t(F80),
-    F83 = int64_t(F82) + int64_t(F81),
-    F84 = int64_t(F83) + int64_t(F82),
-    F85 = int64_t(F84) + int64_t(F83),
-    F86 = int64_t(F85) + int64_t(F84),
-    F87 = int64_t(F86) + int64_t(F85),
-    F88 = int64_t(F87) + int64_t(F86),
-    F89 = int64_t(F88) + int64_t(F87),
-    F90 = int64_t(F89) + int64_t(F88),
-    F91 = int64_t(F90) + int64_t(F89),
-    F92 = int64_t(F91) + int64_t(F90));
+    F2 = F1 + F0,
+    F3 = F2 + F1,
+    F4 = F3 + F2,
+    F5 = F4 + F3,
+    F6 = F5 + F4,
+    F7 = F6 + F5,
+    F8 = F7 + F6,
+    F9 = F8 + F7,
+    F10 = F9 + F8,
+    F11 = F10 + F9,
+    F12 = F11 + F10,
+    F13 = F12 + F11,
+    F14 = F13 + F12,
+    F15 = F14 + F13,
+    F16 = F15 + F14,
+    F17 = F16 + F15,
+    F18 = F17 + F16,
+    F19 = F18 + F17,
+    F20 = F19 + F18,
+    F21 = F20 + F19,
+    F22 = F21 + F20,
+    F23 = F22 + F21,
+    F24 = F23 + F22,
+    F25 = F24 + F23,
+    F26 = F25 + F24,
+    F27 = F26 + F25,
+    F28 = F27 + F26,
+    F29 = F28 + F27,
+    F30 = F29 + F28,
+    F31 = F30 + F29,
+    F32 = F31 + F30,
+    F33 = F32 + F31,
+    F34 = F33 + F32,
+    F35 = F34 + F33,
+    F36 = F35 + F34,
+    F37 = F36 + F35,
+    F38 = F37 + F36,
+    F39 = F38 + F37,
+    F40 = F39 + F38,
+    F41 = F40 + F39,
+    F42 = F41 + F40,
+    F43 = F42 + F41,
+    F44 = F43 + F42,
+    F45 = F44 + F43,
+    F46 = F45 + F44,
+    F47 = F46 + F45,
+    F48 = F47 + F46,
+    F49 = F48 + F47,
+    F50 = F49 + F48,
+    F51 = F50 + F49,
+    F52 = F51 + F50,
+    F53 = F52 + F51,
+    F54 = F53 + F52,
+    F55 = F54 + F53,
+    F56 = F55 + F54,
+    F57 = F56 + F55,
+    F58 = F57 + F56,
+    F59 = F58 + F57,
+    F60 = F59 + F58,
+    F61 = F60 + F59,
+    F62 = F61 + F60,
+    F63 = F62 + F61,
+    F64 = F63 + F62,
+    F65 = F64 + F63,
+    F66 = F65 + F64,
+    F67 = F66 + F65,
+    F68 = F67 + F66,
+    F69 = F68 + F67,
+    F70 = F69 + F68,
+    F71 = F70 + F69,
+    F72 = F71 + F70,
+    F73 = F72 + F71,
+    F74 = F73 + F72,
+    F75 = F74 + F73,
+    F76 = F75 + F74,
+    F77 = F76 + F75,
+    F78 = F77 + F76,
+    F79 = F78 + F77,
+    F80 = F79 + F78,
+    F81 = F80 + F79,
+    F82 = F81 + F80,
+    F83 = F82 + F81,
+    F84 = F83 + F82,
+    F85 = F84 + F83,
+    F86 = F85 + F84,
+    F87 = F86 + F85,
+    F88 = F87 + F86,
+    F89 = F88 + F87,
+    F90 = F89 + F88,
+    F91 = F90 + F89,
+    F92 = F91 + F90);
 
-TEST_CASE("Test sparse enum", "[sparse-enum][fib]") {
+std::ostream& operator<<(std::ostream& os, FooBar::FibonacciNumbers fib) {
+    return os << "FibonacciNumbers(" << (int64_t)fib << ")";
+}
+template <class A, class B, size_t N>
+std::ostream& operator<<(
+    std::ostream& os,
+    nav::impl::binary_map<A, B, N> const& map) {
+    for (auto entry : map.get_entries()) {
+        os << entry.key << ": " << entry.value << "\n";
+    }
+    return os;
+}
+template <class T, size_t N>
+std::ostream& operator<<(std::ostream& os, std::array<T, N> const& arr) {
+    if constexpr (N == 0) {
+        os << "{}";
+    } else {
+        os << "{" << arr[0];
+        for (size_t i = 1; i < N; i++) {
+            os << ", " << arr[i];
+        }
+        os << "}";
+    }
+    return os;
+}
+template <class T>
+std::ostream& operator<<(std::ostream& os, std::optional<T> const& value) {
+    if (value) {
+        return os << "Some(" << *value << ")";
+    } else {
+        return os << "None";
+    }
+    return os;
+}
+
+
+#include <catch2/catch_test_macros.hpp>
+
+TEST_CASE("Check fibonacci values", "[sparse-enum][fib][values]") {
+    using traits = nav::enum_traits<FooBar::FibonacciNumbers>;
+    int64_t fib = 0, fib_next = 1;
+    for (size_t i = 0; i <= 92; i++) {
+        INFO(fmt::format("Checking value of fib({})", i));
+        REQUIRE(traits::values[i] == FooBar::FibonacciNumbers(fib));
+        fib = std::exchange(fib_next, fib + fib_next);
+    }
+}
+TEST_CASE("Check fibonacci names", "[sparse-enum][fib][names]") {
+    using traits = nav::enum_traits<FooBar::FibonacciNumbers>;
+    INFO(traits::names);
+
+    for (size_t i = 0; i <= 92; i++) {
+        REQUIRE(traits::names[i] == fmt::format("F{}", i));
+    }
+}
+TEST_CASE(
+    "Ensure maps have been constructed properly",
+    "[sparse-enum][fib][maps]") {
+
+    using traits = nav::enum_traits<FooBar::FibonacciNumbers>;
+    INFO(traits::names_to_values);
+    REQUIRE(traits::names_to_values.validate_map());
+}
+
+TEST_CASE("Test name lookup", "[sparse-enum][fib][name-lookup]") {
 
     using traits = nav::enum_traits<FooBar::FibonacciNumbers>;
 
-    using enum FooBar::FibonacciNumbers;
-    int64_t fib = 0, fib_next = 1;
+    using FooBar::FibonacciNumbers;
 
-    REQUIRE(*traits::get_value("F0") == F0);
-    REQUIRE(*traits::get_value("F1") == F1);
-    REQUIRE(*traits::get_value("F2") == F2);
-    REQUIRE(*traits::get_value("F3") == F3);
-    REQUIRE(*traits::get_value("F4") == F4);
-
-    for(size_t i = 0; i <= 92; i++) {
-        auto name = fmt::format("F{}", i);
-        INFO(fmt::format("Name of enum: {} / fibonacci number: {}", name, fib));
-        REQUIRE(FooBar::FibonacciNumbers(fib) == *traits::get_value(name));
-        fib = std::exchange(fib_next, fib + fib_next);
+    for (size_t i = 0; i < traits::count; i++) {
+        INFO(fmt::format(
+            "i = {}, traits::names[i] = {}, traits::values[i] = {}",
+            i,
+            traits::names[i],
+            traits::base_type(traits::values[i])));
+        REQUIRE(traits::names_to_values[traits::names[i]] == traits::values[i]);
     }
 }

@@ -3,19 +3,120 @@
 #include <optional>
 #include <string_view>
 
-#define PARENS ()
-#define EXPAND(...) EXPAND4(EXPAND4(EXPAND4(__VA_ARGS__)))
-#define EXPAND4(...) EXPAND3(EXPAND3(EXPAND3(EXPAND3(__VA_ARGS__))))
-#define EXPAND3(...) EXPAND2(EXPAND2(EXPAND2(EXPAND2(__VA_ARGS__))))
-#define EXPAND2(...) EXPAND1(EXPAND1(EXPAND1(EXPAND1(__VA_ARGS__))))
-#define EXPAND1(...) __VA_ARGS__
+// Enum maker - used to compute enum values. This allows us to avoid
+// shennanigans involving recursive  macro expansions.
+namespace nav::impl {
+template <class T, class... Args>
+constexpr auto cast_into_array(Args&&... args)
+    -> std::array<T, sizeof...(Args)> {
+    return std::array<T, sizeof...(Args)> {T(static_cast<Args&&>(args))...};
+}
 
-#define MAP_OPERATOR(func, op, ...)                                            \
-    __VA_OPT__(EXPAND(MAP_OPERATOR_HELPER(func, op, __VA_ARGS__)))
-#define MAP_OPERATOR_HELPER(func, op, a1, ...)                                 \
-    func(op a1), __VA_OPT__(MAP_OPERATOR_AGAIN PARENS(func, op, __VA_ARGS__))
-#define MAP_OPERATOR_AGAIN() MAP_OPERATOR_HELPER
+template <class BaseT>
+struct enum_maker {
+    BaseT value {};
+    bool is_set = false;
+    enum_maker() = default;
+    enum_maker(enum_maker const&) = default;
 
+    // Ignore values on creation. We only care about these on assignment
+    constexpr enum_maker(BaseT)
+      : enum_maker() {}
+
+    // Copy assignment should operate like normal
+    enum_maker& operator=(enum_maker const&) = default;
+
+    // Assigning a value results in is_set being true
+    template <class T>
+    constexpr enum_maker& operator=(T const& v) {
+        value = BaseT(v);
+        is_set = true;
+        return *this;
+    }
+
+    // clang-format off
+    constexpr auto operator+() const { return +value; }
+    constexpr auto operator-() const { return -value; }
+    constexpr auto operator!() const { return !value; }
+    constexpr auto operator~() const { return ~value; }
+    template <class T>
+    constexpr auto operator+(T other) const { return value + other; }
+    template <class T>
+    constexpr auto operator-(T other) const { return value - other; }
+    template <class T>
+    constexpr auto operator*(T other) const { return value * other; }
+    template <class T>
+    constexpr auto operator<<(T other) const { return value << other; }
+    template <class T>
+    constexpr auto operator>>(T other) const { return value >> other; }
+    template <class T>
+    constexpr auto operator<(T other) const { return value < other; }
+    template <class T>
+    constexpr auto operator>(T other) const { return value > other; }
+    template <class T>
+    constexpr auto operator<=(T other) const { return value <= other; }
+    template <class T>
+    constexpr auto operator>=(T other) const { return value >= other; }
+    template <class T>
+    constexpr auto operator=(T other) const { return value = other; }
+    template <class T>
+    constexpr auto operator==(T other) const { return value == other; }
+    template <class T>
+    constexpr auto operator!=(T other) const { return value != other; }
+    template <class T>
+    constexpr auto operator&(T other) const { return value & other; }
+    template <class T>
+    constexpr auto operator|(T other) const { return value | other; }
+    template <class T>
+    constexpr auto operator^(T other) const { return value ^ other; }
+    template <class T>
+    constexpr auto operator&&(T other) const { return value && other; }
+    template <class T>
+    constexpr auto operator||(T other) const { return value || other; }
+    #if __cpp_impl_three_way_comparison >= 201907L
+    template <class T>
+    constexpr auto operator<=>(T other) const { return value <=> other; }
+    #endif
+    // clang-format on
+
+    // Division and % have to be handled special, so that they're a no-op if
+    // is_set isn't true
+    template <class T>
+    constexpr auto operator/(T other) const {
+        return is_set ? value / other : value;
+    }
+    template <class T>
+    constexpr auto operator%(T other) const {
+        return is_set ? value % other : value;
+    }
+
+    constexpr operator BaseT() const {
+        return value;
+    }
+    template <class T>
+    constexpr explicit operator T() const {
+        return T(value);
+    }
+};
+
+template <class BaseT>
+struct value_assigner {
+    BaseT value {};
+
+    constexpr value_assigner& operator,(enum_maker<BaseT>& other) {
+        if (other.is_set) {
+            // Update the current value to be the one stored in the enum
+            value = other.value;
+        } else {
+            // set the enum value to be the current value
+            other = value;
+        }
+        // Also we increment the value we hold
+        value++;
+        return *this;
+    }
+};
+} // namespace nav::impl
 
 namespace nav::impl {
 template <class T>
@@ -698,7 +799,7 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         name_lengths,
         lowercase_name_block.data());
     constexpr static size_t max_name_length = impl::max_elem<count>(
-                                                    name_lengths.data());
+        name_lengths.data());
     constexpr static base_type min = impl::min_base_value<base_type>(values);
     constexpr static base_type max = impl::max_base_value<base_type>(values);
     constexpr static auto values_to_names = impl::
@@ -792,12 +893,15 @@ struct enum_traits : private impl::traits_impl<EnumType> {
     struct traits_impl<EnumType> {                                             \
         friend class ::nav::enum_traits<EnumType>;                             \
         using base_type = BaseType;                                            \
-        using enum EnumType;                                                   \
         constexpr static std::string_view qualified_name = #EnumType;          \
         constexpr static std::string_view name = get_top_name(#EnumType);      \
         /* A list of all the values in the enum, in declaration order */       \
-        constexpr static auto values = std::array {                            \
-            MAP_OPERATOR(EnumType, !, __VA_ARGS__)};                           \
+        constexpr static auto values = []() {                                  \
+            enum_maker<BaseType> first_, __VA_ARGS__;                          \
+            value_assigner<BaseType> assigner {};                              \
+            assigner, __VA_ARGS__;                                             \
+            return nav::impl::cast_into_array<EnumType>(__VA_ARGS__);         \
+        }();                                                                   \
                                                                                \
        private:                                                                \
         constexpr static auto names_raw = split_trim<values.size()>(           \

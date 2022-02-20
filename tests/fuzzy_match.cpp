@@ -36,7 +36,7 @@ nav_declare_enum(
     Student, Offers, Legal, Above, Recent, Stores, Problem, Memory, Social,
     August, Quote, Story, Options, Rates, Create, Young, America, Field, Paper,
     Single, Example, Girls, Latest, Changes, Night, Texas, Poker, Status,
-    Browse, Issue, Range, Seller, Court, );
+    Browse, Issue, Range, Seller, Court);
 // clang-format on
 
 TEST_CASE("Fuzzy mach single-character misspellings", "[find_fuzzy]") {
