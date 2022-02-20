@@ -18,6 +18,18 @@
 
 
 namespace nav::impl {
+template <class T>
+struct view {
+    T const* _begin {};
+    T const* _end {};
+    constexpr T const* begin() const {
+        return _begin;
+    }
+    constexpr T const* end() const {
+        return _end;
+    }
+};
+
 template <size_t N, class T>
 constexpr T max_elem(T const* ptr) {
     if constexpr (N == 0) {
@@ -361,6 +373,18 @@ class binary_map {
         }
         return entries[i].key == key ? std::optional<Value> {entries[i].value}
                                      : std::nullopt;
+    }
+
+    constexpr view<Entry> get_entries() const {
+        return {entries.data(), entries.data() + N};
+    }
+    constexpr bool validate_map() const {
+        for (size_t i = 1; i < entries.size(); i++) {
+            if (entries[i - 1].key >= entries[i].key) {
+                return false;
+            }
+        }
+        return true;
     }
 };
 
