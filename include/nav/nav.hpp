@@ -118,21 +118,69 @@ class indexed_map {
 // stably sorted with duplicates removed
 template <size_t N, class T, class Cmp>
 constexpr void sort(T* values, Cmp less) {
-    if constexpr (N <= 1)
+    if constexpr (N <= 1) {
         return;
-    else if constexpr (N == 2) {
-        auto &a = values[0], b = values[1];
+    } else if constexpr (N == 2) {
+        auto& a = values[0];
+        auto& b = values[1];
         if (less(b, a)) {
             impl::swap(a, b);
         }
         return;
     } else {
-        sort<N / 2>(values, less);
-        sort<N - N / 2>(values + N / 2, less);
-        size_t first_half = N / 2;
-        size_t second_half = N - N / 2;
+        constexpr size_t first_half = N / 2;
+        constexpr size_t second_half = N - N / 2;
+        T* a1 = values;
+        T* a2 = values + first_half;
+        T* const end1 = values + first_half;
+        T* const end2 = values + N;
+        sort<first_half>(a1, less);
+        sort<second_half>(a2, less);
 
         T buffer[N] {};
+
+        T* dest = buffer;
+        while (a1 < end1 && a2 < end2) {
+            *dest++ = less(*a2, *a1) ? *a2++ : *a1++;
+        }
+        if (a1 == end1) {
+            while (a2 < end2) {
+                *dest++ = *a2++;
+            }
+        } else {
+            while (a1 < end1) {
+                *dest++ = *a1++;
+            }
+        }
+        // Copy the elements back from buffer to the original array
+        for (size_t i = 0; i < N; i++) {
+            values[i] = buffer[i];
+        }
+    }
+}
+// Stably sorts and de-duplicates an array, returning a new number of elements
+// stably sorted with duplicates removed
+template <size_t N, class T, class Cmp>
+constexpr size_t sort_dedup(T* values, Cmp less) {
+    if constexpr (N <= 1) {
+        return N;
+    } else if constexpr (N == 2) {
+        auto& a = values[0];
+        auto& b = values[1];
+        if (less(a, b)) {
+            return N;
+        } else if (less(b, a)) {
+            impl::swap(a, b);
+            return N;
+        } else {
+            // We return 1 b/c we're discarding B
+            return 1;
+        }
+    } else {
+        size_t first_half = sort_dedup<N / 2>(values, less);
+        size_t second_half = sort_dedup<N - N / 2>(values + N / 2, less);
+
+        T buffer[N];
 
         T* a1 = values;
         T* a2 = values + N / 2;
@@ -151,10 +199,14 @@ constexpr void sort(T* values, Cmp less) {
                 }
                 break;
             } else {
-                if (less(a2[i1], a1[i2])) {
-                    buffer[dest++] = a2[i1++];
+                if (less(a1[i1], a2[i2])) {
+                    buffer[dest++] = a1[i1++];
+                } else if (less(a2[i2], a1[i1])) {
+                    buffer[dest++] = a2[i2++];
                 } else {
-                    buffer[dest++] = a1[i2++];
+                    // Discard the element from a2, since that's the duplicate
+                    buffer[dest++] = a1[i1++];
+                    i2++;
                 }
             }
         }
@@ -162,67 +214,9 @@ constexpr void sort(T* values, Cmp less) {
         for (size_t i = 0; i < dest; i++) {
             values[i] = buffer[i];
         }
+        // Return the number of elements we placed in the resulting array
+        return dest;
     }
-}
-// Stably sorts and de-duplicates an array, returning a new number of elements
-// stably sorted with duplicates removed
-template <size_t N, class T, class Cmp>
-constexpr size_t sort_dedup(T* values, Cmp less) {
-    if constexpr (N <= 1)
-        return N;
-
-    if constexpr (N == 2) {
-        auto &a = values[0], b = values[1];
-        if (less(a, b)) {
-            return N;
-        } else if (less(b, a)) {
-            impl::swap(a, b);
-            return N;
-        } else {
-            // We return 1 b/c we're discarding B
-            return 1;
-        }
-    }
-
-    size_t first_half = sort_dedup<N / 2>(values, less);
-    size_t second_half = sort_dedup<N - N / 2>(values + N / 2, less);
-
-    T buffer[N];
-
-    T* a1 = values;
-    T* a2 = values + N / 2;
-    size_t i1 = 0, i2 = 0, dest = 0;
-    for (;;) {
-        // If either array is out of elements, copy the remaining elements and
-        // then break
-        if (i1 == first_half) {
-            while (i2 < second_half) {
-                buffer[dest++] = a2[i2++];
-            }
-            break;
-        } else if (i2 == second_half) {
-            while (i1 < first_half) {
-                buffer[dest++] = a1[i1++];
-            }
-            break;
-        } else {
-            if (less(a1[i1], a2[i2])) {
-                buffer[dest++] = a1[i1++];
-            } else if (less(a2[i2], a1[i1])) {
-                buffer[dest++] = a2[i2++];
-            } else {
-                // Discard the element from a2, since that's the duplicate
-                buffer[dest++] = a1[i1++];
-                i2++;
-            }
-        }
-    }
-    // Copy the elements back from buffer to the original array
-    for (size_t i = 0; i < dest; i++) {
-        values[i] = buffer[i];
-    }
-    // Return the number of elements we placed in the resulting array
-    return dest;
 }
 template <class Key, class Value, size_t N>
 class binary_dedup_map {
