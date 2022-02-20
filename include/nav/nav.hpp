@@ -6,12 +6,6 @@
 // Enum maker - used to compute enum values. This allows us to avoid
 // shennanigans involving recursive  macro expansions.
 namespace nav::impl {
-template <class T, class... Args>
-constexpr auto cast_into_array(Args&&... args)
-    -> std::array<T, sizeof...(Args)> {
-    return std::array<T, sizeof...(Args)> {T(static_cast<Args&&>(args))...};
-}
-
 template <class BaseT>
 struct enum_maker {
     BaseT value {};
@@ -897,10 +891,18 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         constexpr static std::string_view name = get_top_name(#EnumType);      \
         /* A list of all the values in the enum, in declaration order */       \
         constexpr static auto values = []() {                                  \
-            enum_maker<BaseType> first_, __VA_ARGS__;                          \
-            value_assigner<BaseType> assigner {};                              \
-            assigner, __VA_ARGS__;                                             \
-            return nav::impl::cast_into_array<EnumType>(__VA_ARGS__);         \
+            enum_maker<BaseType> __VA_ARGS__;                                  \
+            value_assigner<BaseType> DECLENUM_assigner {};                     \
+            DECLENUM_assigner, __VA_ARGS__;                                    \
+            enum_maker<BaseType> DECLENUM_value_array[] {__VA_ARGS__};         \
+            {                                                                  \
+                constexpr size_t N = sizeof(DECLENUM_value_array)              \
+                                   / sizeof(enum_maker<BaseType>);             \
+                std::array<EnumType, N> result {};                             \
+                for (size_t i = 0; i < N; i++)                                 \
+                    result[i] = EnumType(DECLENUM_value_array[i]);             \
+                return result;                                                 \
+            }                                                                  \
         }();                                                                   \
                                                                                \
        private:                                                                \
