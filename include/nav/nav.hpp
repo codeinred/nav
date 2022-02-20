@@ -288,41 +288,42 @@ constexpr size_t sort_dedup(T* values, Cmp less) {
         size_t second_half = sort_dedup<N - N / 2>(values + N / 2, less);
 
         T buffer[N];
+        size_t count = 0;
 
-        T* a1 = values;
-        T* a2 = values + N / 2;
-        size_t i1 = 0, i2 = 0, dest = 0;
-        for (;;) {
-            // If either array is out of elements, copy the remaining elements
-            // and then break
-            if (i1 == first_half) {
-                while (i2 < second_half) {
-                    buffer[dest++] = a2[i2++];
-                }
-                break;
-            } else if (i2 == second_half) {
-                while (i1 < first_half) {
-                    buffer[dest++] = a1[i1++];
-                }
-                break;
-            } else {
-                if (less(a1[i1], a2[i2])) {
-                    buffer[dest++] = a1[i1++];
-                } else if (less(a2[i2], a1[i1])) {
-                    buffer[dest++] = a2[i2++];
+        {
+            T* dest = buffer;
+            T* a1 = values;
+            T* a2 = values + N / 2;
+            T* const end1 = a1 + first_half;
+            T* const end2 = a2 + second_half;
+            while (a1 < end1 && a2 < end2) {
+                if (less(*a1, *a2)) {
+                    *dest++ = *a1++;
+                } else if (less(*a2, *a1)) {
+                    *dest++ = *a2++;
                 } else {
                     // Discard the element from a2, since that's the duplicate
-                    buffer[dest++] = a1[i1++];
-                    i2++;
+                    *dest++ = *a1++;
+                    a2++;
                 }
             }
+            if (a1 == end1) {
+                while (a2 < end2) {
+                    *dest++ = *a2++;
+                }
+            } else {
+                while (a1 < end1) {
+                    *dest++ = *a1++;
+                }
+            }
+            count = dest - buffer;
         }
         // Copy the elements back from buffer to the original array
-        for (size_t i = 0; i < dest; i++) {
+        for (size_t i = 0; i < count; i++) {
             values[i] = buffer[i];
         }
         // Return the number of elements we placed in the resulting array
-        return dest;
+        return count;
     }
 }
 template <class Key, class Value, size_t N>
