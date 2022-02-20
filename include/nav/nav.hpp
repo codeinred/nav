@@ -864,6 +864,30 @@ struct enum_traits : private impl::traits_impl<EnumType> {
             use_lowercase);
     }
 };
+
+/**
+ * @brief Get the number of declared states an enum has
+ *
+ * @tparam T the enum
+ */
+template <class T>
+constexpr size_t enum_size = enum_traits<T>::size;
+
+/**
+ * @brief Get the values declared for an enum, in declaration order
+ *
+ * @tparam T the enum
+ */
+template <class T>
+constexpr auto const& enum_values = enum_traits<T>::values;
+
+/**
+ * @brief Get the names of an enum's values, in declarattion order
+ *
+ * @tparam T the enum
+ */
+template <class T>
+constexpr auto const& enum_names = enum_traits<T>::names;
 } // namespace nav
 
 #define nav_declare_enum(EnumType, BaseType, ...)                              \
