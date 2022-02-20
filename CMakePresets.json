@@ -54,6 +54,18 @@
                 "FORCE_DIAGNOSTIC_COLORS": "ON",
                 "CMAKE_CXX_FLAGS": "-std=c++17 -O2"
             }
+        },
+        {
+            "name": "DevelCpp20",
+            "displayName": "Configure DevelCpp20",
+            "description": "Devel Preset (explicitly enables C++20 for clangd)",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "FORCE_DIAGNOSTIC_COLORS": "ON",
+                "CMAKE_CXX_FLAGS": "-std=c++20 -O2"
+            }
         }
     ],
     "buildPresets": [
@@ -79,6 +91,12 @@
             "name": "Devel",
             "configurePreset": "Devel",
             "configuration": "Devel",
+            "jobs": 8
+        },
+        {
+            "name": "DevelCpp20",
+            "configurePreset": "DevelCpp20",
+            "configuration": "DevelCpp20",
             "jobs": 8
         }
     ]
