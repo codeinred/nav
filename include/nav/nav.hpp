@@ -877,15 +877,14 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         /* A list of all the values in the enum, in declaration order */       \
         constexpr static auto values = []() {                                  \
             enum_maker<BaseType> __VA_ARGS__;                                  \
-            value_assigner<BaseType> DECLENUM_assigner {};                     \
-            DECLENUM_assigner, __VA_ARGS__;                                    \
-            enum_maker<BaseType> DECLENUM_value_array[] {__VA_ARGS__};         \
+            value_assigner<BaseType> {}, __VA_ARGS__;                          \
+            enum_maker<BaseType> NAV_DECLARE_ENUM_vals[] {__VA_ARGS__};        \
             {                                                                  \
-                constexpr size_t N = sizeof(DECLENUM_value_array)              \
+                constexpr size_t N = sizeof(NAV_DECLARE_ENUM_vals)             \
                                    / sizeof(enum_maker<BaseType>);             \
                 std::array<EnumType, N> result {};                             \
                 for (size_t i = 0; i < N; i++)                                 \
-                    result[i] = EnumType(DECLENUM_value_array[i]);             \
+                    result[i] = EnumType(NAV_DECLARE_ENUM_vals[i]);            \
                 return result;                                                 \
             }                                                                  \
         }();                                                                   \
