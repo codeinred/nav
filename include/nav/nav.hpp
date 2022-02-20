@@ -125,6 +125,10 @@ struct view {
     }
 };
 
+template <class T>
+constexpr T max(T const& a, T const& b) {
+    return a < b ? b : a;
+}
 template <size_t N, class T>
 constexpr T max_elem(T const* ptr) {
     if constexpr (N == 0) {
@@ -518,7 +522,7 @@ constexpr auto max_base_value(std::array<T, N> const& arr) -> BaseT {
     } else {
         auto max_value = BaseT(arr[0]);
         for (size_t i = 1; i < N; i++) {
-            max_value = std::max(max_value, BaseT(arr[i]));
+            max_value = max(max_value, BaseT(arr[i]));
         }
         return max_value;
     }
