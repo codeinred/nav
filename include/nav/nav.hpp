@@ -621,7 +621,11 @@ constexpr Result fold(Elem const* values, size_t N, Result initial, F func) {
     return initial;
 }
 template <class Enum>
-struct traits_impl {};
+struct traits_impl {
+    // Allows checks for the existence of nav enum traits
+    constexpr static bool is_nav_enum = false;
+};
+
 
 /**
  * @brief Compute the smallest number of the form 2^N-1 such that 2^N-1 >= i
@@ -750,6 +754,9 @@ struct enum_traits : private impl::traits_impl<EnumType> {
    public:
     using enum_type = EnumType;
     using base_type = typename super::base_type;
+    using super::is_nav_enum;
+    using super::qualified_type_name;
+    using super::type_name;
     using super::values;
     constexpr static auto size = values.size();
     constexpr static auto name_lengths = impl::map_array(
@@ -892,6 +899,15 @@ constexpr auto const& enum_values = enum_traits<T>::values;
  */
 template <class T>
 constexpr auto const& enum_names = enum_traits<T>::names;
+
+// Checks if an enum has associated traits
+template <class T>
+constexpr bool is_nav_enum = impl::traits_impl<T>::is_nav_enum;
+
+#if __cpp_concepts >= 201907L
+template <class T>
+concept nav_enum = is_nav_enum<T>;
+#endif
 } // namespace nav
 
 #define nav_declare_enum(EnumType, BaseType, ...)                              \
@@ -899,10 +915,11 @@ constexpr auto const& enum_names = enum_traits<T>::names;
     namespace nav::impl {                                                      \
     template <>                                                                \
     struct traits_impl<EnumType> {                                             \
+        constexpr static bool is_nav_enum = true;                              \
         friend class ::nav::enum_traits<EnumType>;                             \
         using base_type = BaseType;                                            \
-        constexpr static std::string_view qualified_name = #EnumType;          \
-        constexpr static std::string_view name = get_top_name(#EnumType);      \
+        constexpr static std::string_view qualified_type_name = #EnumType;     \
+        constexpr static std::string_view type_name = get_top_name(#EnumType); \
         /* A list of all the values in the enum, in declaration order */       \
         constexpr static auto values = []() {                                  \
             enum_maker<BaseType> __VA_ARGS__;                                  \
