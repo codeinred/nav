@@ -3,6 +3,46 @@
 #include <optional>
 #include <string_view>
 
+namespace nav {
+// Small convinient view class
+template <class T>
+struct view {
+    T const* _begin {};
+    T const* _end {};
+    view() = default;
+    view(view const&) = default;
+    template <size_t N>
+    constexpr view(T const (&arr)[N]) noexcept
+      : _begin(arr)
+      , _end(arr + N) {}
+    template <size_t N>
+    constexpr view(std::array<T, N> const& arr) noexcept
+      : _begin(arr.data())
+      , _end(arr.data() + N) {}
+    constexpr view(T const* begin, T const* end) noexcept
+      : _begin(begin)
+      , _end(end) {}
+    constexpr view(T const* begin, size_t N) noexcept
+      : _begin(begin)
+      , _end(begin + N) {}
+    constexpr T const* begin() const {
+        return _begin;
+    }
+    constexpr T const* end() const {
+        return _end;
+    }
+    constexpr size_t size() const noexcept {
+        return _end - _begin;
+    }
+    constexpr intptr_t ssize() const noexcept {
+        return _end - _begin;
+    }
+    constexpr T const& operator[](size_t i) const noexcept {
+        return _begin[i];
+    }
+};
+} // namespace nav
+
 // Enum maker - used to compute enum values. This allows us to avoid
 // shennanigans involving recursive  macro expansions.
 namespace nav::impl {
@@ -108,20 +148,6 @@ struct value_assigner {
         // Also we increment the value we hold
         value++;
         return *this;
-    }
-};
-} // namespace nav::impl
-
-namespace nav::impl {
-template <class T>
-struct view {
-    T const* _begin {};
-    T const* _end {};
-    constexpr T const* begin() const {
-        return _begin;
-    }
-    constexpr T const* end() const {
-        return _end;
     }
 };
 
