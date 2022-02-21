@@ -94,11 +94,11 @@ if(PROJECT_IS_TOP_LEVEL)
     # Register test_nav as an executable
     add_executable(
         nav_core
-        tests/fuzzy_match.cpp
         tests/sparse_enums.cpp)
     add_executable(nav_extra
         tests/nav_extra.cpp
-        tests/nav_iostream.cpp)
+        tests/nav_iostream.cpp
+        tests/fuzzy_match.cpp)
 
     target_compile_features(
         nav_core

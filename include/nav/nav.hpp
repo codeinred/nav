@@ -163,11 +163,7 @@ constexpr void swap(T& a, T& b) {
     b = static_cast<T&&>(Tmp);
 }
 constexpr auto to_lower = [](char ch) -> char {
-    if ('A' <= ch && ch <= 'Z') {
-        return ch - 'A' + 'a';
-    } else {
-        return ch;
-    }
+    return 'A' <= ch && ch <= 'Z' ? ch - 'A' + 'a' : ch;
 };
 template <class Key, class Value, class BaseT, BaseT Min, BaseT Max>
 class indexed_map {
@@ -641,108 +637,6 @@ constexpr size_t bit_ceil_minus_1(size_t i) {
     }
     return ceil;
 }
-/**
- * @brief Compute the Levenshtein distance through MaxLength (this should be
- * used when one of the strings has a known max length, and so there's no need
- * to compare further than that. It also ensures that no memory allocations need
- * to occur.) Computes the distance as though the strings were truncated to
- * MaxLength
- *
- * @tparam MaxLength the maximum length to measure the distance out to.
- * @param strA the first string
- * @param strB the second string
- * @return int the distance
- */
-template <size_t MaxLength>
-constexpr auto levenshtein_distance =
-    [](std::string_view strA, std::string_view strB) -> int {
-    // for all i and j, dist[i,j] will hold the Levenshtein distance between
-    // the first i characters of s and the first j characters of t
-    int dist[MaxLength + 1][MaxLength + 1];
-    size_t lenA = std::min(MaxLength, strA.size());
-    size_t lenB = std::min(MaxLength, strB.size());
-
-    // source prefixes can be transformed into empty string by
-    // dropping all characters
-    for (size_t ai = 0; ai <= lenA; ai++)
-        dist[ai][0] = ai;
-
-    // target prefixes can be reached from empty source prefix
-    // by inserting every character
-    for (size_t bi = 0; bi <= lenB; bi++)
-        dist[0][bi] = bi;
-
-    for (size_t bi = 0; bi < lenB; bi++) {
-        for (size_t ai = 0; ai < lenA; ai++) {
-            int substitutionCost = !(strA[ai] == strB[bi]);
-
-            dist[ai + 1][bi + 1] = std::min(
-                std::min(
-                    dist[ai][bi + 1] + 1,         // deletion
-                    dist[ai + 1][bi] + 1),        // insertion
-                dist[ai][bi] + substitutionCost); // substitution
-        }
-    }
-    return dist[lenA][lenB];
-};
-
-template <size_t MaxLength>
-constexpr auto caseless_levenshtein_distance =
-    [](std::string_view strA, std::string_view strB) -> int {
-    char buffA[MaxLength];
-    char buffB[MaxLength];
-
-    size_t lenA = std::min(MaxLength, strA.size());
-    size_t lenB = std::min(MaxLength, strB.size());
-
-    for (size_t i = 0; i < lenA; i++) {
-        buffA[i] = to_lower(strA[i]);
-    }
-    for (size_t i = 0; i < lenB; i++) {
-        buffB[i] = to_lower(strB[i]);
-    }
-    return levenshtein_distance<MaxLength>(
-        std::string_view(buffA, lenA),
-        std::string_view(buffB, lenB));
-};
-/**
- * @brief Use fuzzy matching to find the index of the option closest to the
- * given value, from an array of options. If two options have the same distance,
- * takes the first one. Returns std::string_view::npos if num_options == 0
- *
- * @tparam MaxLength the maximum length to measure the levenshtein distance out
- * to.
- * @param options pointer to array of options to compare against
- * @param num_options number of options
- * @param value the value
- * @return size_t the index of the closest option
- */
-template <size_t MaxLength, class EditDistance>
-constexpr size_t fuzzy_match(
-    std::string_view const* options,
-    size_t num_options,
-    std::string_view value,
-    EditDistance dist,
-    bool use_lowercase = true) {
-    char buff[MaxLength];
-    if (use_lowercase) {
-        size_t N = std::min(MaxLength, value.size());
-        for (size_t i = 0; i < N; i++) {
-            buff[i] = to_lower(value[i]);
-        }
-        value = std::string_view(buff, N);
-    }
-    size_t best_i = std::string_view::npos;
-    size_t best_dist = ~(size_t)0;
-    for (size_t i = 0; i < num_options; i++) {
-        int current_dist = dist(options[i], value);
-        if (current_dist < best_dist) {
-            best_dist = current_dist;
-            best_i = i;
-        }
-    }
-    return best_i;
-}
 } // namespace nav::impl
 
 namespace nav {
@@ -853,26 +747,6 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         EnumType value,
         std::string_view alternative) {
         return values_to_names.get(value, alternative);
-    }
-    /** Distance metric used for fuzzy string matching. Defaults to
-     * caseless levenshtein distance (levenshtein distance, ignoring case)
-     */
-    constexpr static auto distance_metric = impl::caseless_levenshtein_distance<
-        impl::bit_ceil_minus_1(max_name_length * 2)>;
-    /* Return the index of the value whose name most closely matches the
-     * given name. Compare names based on levenshtein distance. Index is
-     * in declaration order, so if the return value is i you can get the
-     * corresponding value with values[i] and the corresponding name with
-     * names[i]. Converts inputs and names to lowercase by default.*/
-    constexpr static size_t find_fuzzy(
-        std::string_view name,
-        bool use_lowercase = true) {
-        return impl::fuzzy_match<impl::bit_ceil_minus_1(max_name_length * 2)>(
-            use_lowercase ? lowercase_names.data() : names.data(),
-            size,
-            name,
-            distance_metric,
-            use_lowercase);
     }
 };
 

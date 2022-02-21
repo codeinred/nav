@@ -1,6 +1,7 @@
-#include <nav/nav.hpp>
+#include "nav/nav_fuzzy_match.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <fmt/core.h>
+#include <nav/nav.hpp>
 #include <random>
 #include <string>
 
@@ -42,7 +43,11 @@ nav_declare_enum(
 TEST_CASE("Fuzzy mach single-character misspellings", "[find_fuzzy]") {
     using traits = nav::enum_traits<CommonWords>;
 
-    REQUIRE(traits::values[traits::find_fuzzy("abutt")] == CommonWords::About);
+    constexpr auto distance_metric = nav::caseless_levenshtein_distance<32>;
+
+    REQUIRE(
+        traits::values[nav::fuzzy_match_enum<CommonWords>("abutt")]
+        == CommonWords::About);
 
     enum EditKind { Insert, Delete, Substitute };
     std::mt19937_64 rng;
@@ -62,7 +67,7 @@ TEST_CASE("Fuzzy mach single-character misspellings", "[find_fuzzy]") {
             case Delete: str.erase(str.begin() + index); break;
             case Substitute: str[index] = letter_dist(rng); break;
         }
-        size_t found_i = traits::find_fuzzy(str);
+        size_t found_i = nav::fuzzy_match_enum<CommonWords>(str);
         INFO(fmt::format(
             "Search string: '{}'\n"
             "Original name: '{}'\n"
@@ -72,18 +77,22 @@ TEST_CASE("Fuzzy mach single-character misspellings", "[find_fuzzy]") {
             str,
             name,
             traits::names[found_i],
-            traits::distance_metric(name, str),
-            traits::distance_metric(traits::names[found_i], str)));
+            distance_metric(name, str),
+            distance_metric(traits::names[found_i], str)));
 
-        REQUIRE(traits::distance_metric(str, name) <= 1);
-        REQUIRE(traits::distance_metric(str, traits::names[found_i]) <= 1);
+        REQUIRE(distance_metric(str, name) <= 1);
+        REQUIRE(distance_metric(str, traits::names[found_i]) <= 1);
     }
 }
 
 TEST_CASE("Fuzzy mach two-character misspellings", "[find_fuzzy]") {
     using traits = nav::enum_traits<CommonWords>;
 
-    REQUIRE(traits::values[traits::find_fuzzy("abutt")] == CommonWords::About);
+    constexpr auto distance_metric = nav::caseless_levenshtein_distance<32>;
+
+    REQUIRE(
+        traits::values[nav::fuzzy_match_enum<CommonWords>("abutt")]
+        == CommonWords::About);
 
     enum EditKind { Insert, Delete, Substitute };
     std::mt19937_64 rng;
@@ -115,7 +124,7 @@ TEST_CASE("Fuzzy mach two-character misspellings", "[find_fuzzy]") {
             case Delete: str.erase(str.begin() + index); break;
             case Substitute: str[index] = letter_dist(rng); break;
         }
-        size_t found_i = traits::find_fuzzy(str);
+        size_t found_i = nav::fuzzy_match_enum<CommonWords>(str);
         INFO(fmt::format(
             "Search string: '{}'\n"
             "Original name: '{}'\n"
@@ -125,10 +134,10 @@ TEST_CASE("Fuzzy mach two-character misspellings", "[find_fuzzy]") {
             str,
             name,
             traits::names[found_i],
-            traits::distance_metric(name, str),
-            traits::distance_metric(traits::names[found_i], str)));
+            distance_metric(name, str),
+            distance_metric(traits::names[found_i], str)));
 
-        REQUIRE(traits::distance_metric(str, name) <= 2);
-        REQUIRE(traits::distance_metric(str, traits::names[found_i]) <= 2);
+        REQUIRE(distance_metric(str, name) <= 2);
+        REQUIRE(distance_metric(str, traits::names[found_i]) <= 2);
     }
 }
