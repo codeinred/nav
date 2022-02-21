@@ -97,7 +97,8 @@ if(PROJECT_IS_TOP_LEVEL)
         tests/fuzzy_match.cpp
         tests/sparse_enums.cpp)
     add_executable(nav_extra
-        tests/nav_extra.cpp)
+        tests/nav_extra.cpp
+        tests/nav_iostream.cpp)
 
     target_compile_features(
         nav_core
