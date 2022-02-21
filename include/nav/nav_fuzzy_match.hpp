@@ -83,13 +83,12 @@ constexpr auto caseless_levenshtein_distance =
  */
 template <class EditDistance>
 constexpr size_t fuzzy_search(
-    std::string_view const* options,
-    size_t num_options,
+    view<std::string_view> options,
     std::string_view value,
     EditDistance dist) {
-    size_t best_i = std::string_view::npos;
+    size_t best_i = options.npos;
     size_t best_dist = ~(size_t)0;
-    for (size_t i = 0; i < num_options; i++) {
+    for (size_t i = 0; i < options.size(); i++) {
         int current_dist = dist(options[i], value);
         if (current_dist < best_dist) {
             best_dist = current_dist;
@@ -119,8 +118,8 @@ constexpr static auto fuzzy_match_enum = [](std::string_view name,
         name = std::string_view(buff, N);
     }
     return fuzzy_search(
-        use_lowercase ? traits::lowercase_names.data() : traits::names.data(),
-        traits::size,
+        {use_lowercase ? traits::lowercase_names.data() : traits::names.data(),
+         traits::size},
         name,
         levenshtein_distance<MaxLength>);
 };

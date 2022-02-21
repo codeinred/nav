@@ -7,6 +7,7 @@ namespace nav {
 // Small convinient view class
 template <class T>
 struct view {
+    constexpr static auto npos = ~size_t(0);
     T const* _begin {};
     T const* _end {};
     view() = default;
