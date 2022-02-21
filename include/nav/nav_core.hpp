@@ -4,6 +4,9 @@
 #include <string_view>
 
 namespace nav {
+template <class EnumType>
+struct enum_traits;
+
 // Small convinient view class
 template <class T>
 struct view {
@@ -40,6 +43,56 @@ struct view {
     }
     constexpr T const& operator[](size_t i) const noexcept {
         return _begin[i];
+    }
+};
+
+template <class Enum>
+struct optional_enum {
+    using traits = enum_traits<Enum>;
+    constexpr static auto npos = ~size_t(0);
+    // The index of the enum, in declaration order (the order the enum was
+    // declared in)
+    size_t m_index {npos};
+
+    constexpr std::string_view lowercase_name() const noexcept {
+        return traits::lowercase_names[m_index];
+    }
+    constexpr std::string_view name() const noexcept {
+        return traits::names[m_index];
+    }
+    constexpr Enum value() const noexcept {
+        return traits::values[m_index];
+    }
+
+    // Returns the lowercase name, or a default-constructed string_view
+    constexpr std::string_view lowercase_name_or_empty() const noexcept {
+        return lowercase_name_or(std::string_view());
+    }
+    // Returns the name, or a default-constructed string_view
+    constexpr std::string_view name_or_empty() const noexcept {
+        return name_or(std::string_view());
+    }
+    // Returns the value, or a default-constructed Enum
+    constexpr Enum value_or_0() const noexcept {
+        return value_or(Enum());
+    }
+
+    constexpr std::string_view lowercase_name_or(
+        std::string_view alternative) const noexcept {
+        return has_value() ? traits::lowercase_names[m_index] : alternative;
+    }
+    constexpr std::string_view name_or(
+        std::string_view alternative) const noexcept {
+        return has_value() ? traits::names[m_index] : alternative;
+    }
+    constexpr Enum value_or(Enum alternative) const noexcept {
+        return has_value() ? traits::values[m_index] : alternative;
+    }
+    constexpr bool has_value() const noexcept {
+        return m_index < traits::size;
+    }
+    constexpr operator bool() const noexcept {
+        return m_index < traits::size;
     }
 };
 } // namespace nav
