@@ -1,4 +1,4 @@
-#include <nav/nav.hpp>
+#include <nav/nav_core.hpp>
 #include <fmt/core.h>
 #include <iostream>
 

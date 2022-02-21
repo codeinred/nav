@@ -2,7 +2,7 @@
 #include <cmath>
 #include <fmt/core.h>
 #include <fmt/format.h>
-#include <nav/nav.hpp>
+#include <nav/nav_core.hpp>
 #include <type_traits>
 
 template <nav::nav_enum Enum>

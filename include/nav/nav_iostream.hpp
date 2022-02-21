@@ -1,5 +1,5 @@
 #pragma once
-#include <nav/nav.hpp>
+#include <nav/nav_core.hpp>
 #include <ostream>
 
 namespace nav {

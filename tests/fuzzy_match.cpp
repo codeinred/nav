@@ -1,7 +1,7 @@
 #include "nav/nav_fuzzy_match.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <fmt/core.h>
-#include <nav/nav.hpp>
+#include <nav/nav_core.hpp>
 #include <random>
 #include <string>
 

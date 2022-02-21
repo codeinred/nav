@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include <nav/nav.hpp>
+#include <nav/nav_core.hpp>
 #include <nav/nav_libfmt.hpp>
 
 namespace test_nav {
