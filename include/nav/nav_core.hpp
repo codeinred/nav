@@ -50,6 +50,7 @@ template <class Enum>
 struct optional_enum {
     using traits = enum_traits<Enum>;
     constexpr static auto npos = ~size_t(0);
+    constexpr static size_t max_index = traits::size;
     // The index of the enum, in declaration order (the order the enum was
     // declared in)
     size_t m_index {npos};
@@ -94,7 +95,23 @@ struct optional_enum {
     constexpr operator bool() const noexcept {
         return m_index < traits::size;
     }
+
+    constexpr bool operator==(Enum e) const noexcept {
+        return has_value() ? value() == e : false;
+    }
+    constexpr bool operator==(std::string_view Name) const noexcept {
+        return has_value() ? name() == Name : false;
+    }
 };
+
+struct null_opt_enum_t {
+    template <class Enum>
+    constexpr operator optional_enum<Enum>() const noexcept {
+        return optional_enum<Enum> {~size_t(0)};
+    }
+};
+
+constexpr null_opt_enum_t null_opt_enum {};
 } // namespace nav
 
 // Enum maker - used to compute enum values. This allows us to avoid
@@ -245,56 +262,41 @@ constexpr void swap(T& a, T& b) {
 constexpr auto to_lower = [](char ch) -> char {
     return 'A' <= ch && ch <= 'Z' ? ch - 'A' + 'a' : ch;
 };
-template <class Key, class Value, class BaseT, BaseT Min, BaseT Max>
+template <class Enum, class BaseT, BaseT Min, BaseT Max>
 class indexed_map {
     constexpr static size_t ArraySize = Max - Min + 1;
-    std::array<Value, ArraySize> vals {};
-    std::array<bool, ArraySize> present {};
-
-    Value default_value;
+    std::array<optional_enum<Enum>, ArraySize> vals {};
 
    public:
     template <size_t N>
-    constexpr indexed_map(
-        std::array<Key, N> const& keys,
-        std::array<Value, N> const& values,
-        Value default_value)
-      : vals()
-      , present()
-      , default_value(default_value) {
-        for (auto& val : vals) {
-            val = default_value;
-        }
+    constexpr indexed_map(std::array<Enum, N> const& keys)
+      : vals() {
+        static_assert(
+            N == optional_enum<Enum>::max_index,
+            "The number of keys must be the same as the max index for "
+            "optional_enum");
         for (size_t i = 0; i < N; i++) {
             auto key_i = BaseT(keys[i]) - Min;
-            if (!present[key_i]) {
-                vals[key_i] = values[i];
-                present[key_i] = true;
+            if (!vals[key_i].has_value()) {
+                vals[key_i] = {i};
             }
         }
     }
-    constexpr auto contains(Key key) const -> bool {
+    constexpr auto contains(Enum key) const -> bool {
         auto i = BaseT(key);
         if (i < Min || i > Max) {
             return false;
         } else {
-            return present[i - Min];
+            return vals[i - Min].has_value();
         }
     }
-    constexpr auto get(Key key) const -> std::optional<Value> {
+    constexpr auto get(Enum key) const -> optional_enum<Enum> {
         return (*this)[key];
     }
-    constexpr auto get(Key key, Value default_value) const -> Value {
-        if (std::optional<Value> result = (*this)[key]) {
-            return *result;
-        } else {
-            return default_value;
-        }
-    }
-    constexpr auto operator[](Key key) const -> std::optional<Value> {
+    constexpr auto operator[](Enum key) const -> optional_enum<Enum> {
         auto i = BaseT(key);
-        if (i < Min || i > Max || !present[i - Min]) {
-            return std::nullopt;
+        if (i < Min || i > Max) {
+            return null_opt_enum;
         } else {
             return vals[i - Min];
         }
@@ -367,7 +369,7 @@ constexpr size_t sort_dedup(T* values, Cmp less) {
         size_t first_half = sort_dedup<N / 2>(values, less);
         size_t second_half = sort_dedup<N - N / 2>(values + N / 2, less);
 
-        T buffer[N];
+        T buffer[N] {};
         size_t count = 0;
 
         {
@@ -406,26 +408,20 @@ constexpr size_t sort_dedup(T* values, Cmp less) {
         return count;
     }
 }
-template <class Key, class Value, size_t N>
+template <class Enum, size_t N>
 class binary_dedup_map {
     struct Entry {
-        Key key {};
-        Value value {};
+        Enum key;
+        size_t idx;
     };
-    Value default_value {};
     std::array<Entry, N> entries;
     size_t count = 0;
     // count <= N (It's the count with duplicates removed)
-
-
    public:
-    constexpr binary_dedup_map(
-        std::array<Key, N> const& keys,
-        std::array<Value, N> const& values,
-        Value const& default_value)
-      : default_value(default_value) {
+    constexpr binary_dedup_map(std::array<Enum, N> const& keys)
+      : entries() {
         for (size_t i = 0; i < N; i++) {
-            entries[i] = {keys[i], values[i]};
+            entries[i] = {keys[i], i};
         }
         // Stably sort and deduplicate entries. Compute count to be the number
         // of entries after deduplication
@@ -433,34 +429,13 @@ class binary_dedup_map {
             entries.data(),
             [](auto const& e1, auto const& e2) { return e1.key < e2.key; });
     }
-    constexpr bool contains(Key key) const {
-        size_t lower_i = 0;
-        size_t upper_i = count - 1;
-        while (lower_i <= upper_i) {
-            size_t i = (lower_i + upper_i) / 2;
-            int cmp = impl::compare(entries[i].key, key);
-
-            if (cmp < 0) {
-                lower_i = i + 1;
-            } else if (cmp > 0) {
-                upper_i = i - 1;
-            } else {
-                return true;
-            }
-        }
-        return false;
+    constexpr bool contains(Enum key) const {
+        return (*this)[key].has_value();
     }
-    constexpr auto get(Key key) const -> std::optional<Value> {
+    constexpr auto get(Enum key) const -> optional_enum<Enum> {
         return (*this)[key];
     }
-    constexpr auto get(Key key, Value default_value) const -> Value {
-        if (std::optional<Value> result = (*this)[key]) {
-            return *result;
-        } else {
-            return default_value;
-        }
-    }
-    constexpr auto operator[](Key key) const -> std::optional<Value> {
+    constexpr auto operator[](Enum key) const -> optional_enum<Enum> {
         size_t lower_i = 0;
         size_t upper_i = count - 1;
         while (lower_i <= upper_i) {
@@ -472,20 +447,20 @@ class binary_dedup_map {
             } else if (cmp > 0) {
                 upper_i = i - 1;
             } else {
-                return entries[i].value;
+                return optional_enum<Enum> {i};
             }
         }
-        return std::nullopt;
+        return null_opt_enum;
     }
 };
 
 // A map that returns an optional when you index into it. Returns nullopt if the
 // item wasn't found.
-template <class Key, class Value, size_t N>
+template <class Key, class Enum, size_t N>
 class binary_map {
     struct Entry {
         Key key {};
-        Value value {};
+        Enum value {};
     };
     std::array<Entry, N> entries;
     // count <= N (It's the count with duplicates removed)
@@ -494,7 +469,7 @@ class binary_map {
    public:
     constexpr binary_map(
         std::array<Key, N> const& keys,
-        std::array<Value, N> const& values) {
+        std::array<Enum, N> const& values) {
         for (size_t i = 0; i < N; i++) {
             entries[i] = {keys[i], values[i]};
         }
@@ -521,17 +496,17 @@ class binary_map {
         }
         return false;
     }
-    constexpr auto get(Key key) const -> std::optional<Value> {
+    constexpr auto get(Key key) const -> optional_enum<Enum> {
         return (*this)[key];
     }
-    constexpr auto get(Key key, Value default_value) const -> Value {
-        if (std::optional<Value> result = (*this)[key]) {
+    constexpr auto get(Key key, Enum default_value) const -> Enum {
+        if (optional_enum<Enum> result = (*this)[key]) {
             return *result;
         } else {
             return default_value;
         }
     }
-    constexpr auto operator[](Key key) const -> std::optional<Value> {
+    constexpr auto operator[](Key key) const -> optional_enum<Enum> {
         size_t lower_i = 0;
         size_t upper_i = N - 1;
         while (lower_i <= upper_i) {
@@ -543,10 +518,10 @@ class binary_map {
             } else if (cmp > 0) {
                 upper_i = i - 1;
             } else {
-                return entries[i].value;
+                return optional_enum<Enum> {i};
             }
         }
-        return std::nullopt;
+        return null_opt_enum;
     }
 
     constexpr view<Entry> get_entries() const {
@@ -562,20 +537,14 @@ class binary_map {
     }
 };
 
-template <class Key, class Value, size_t N, class BaseT, BaseT Min, BaseT Max>
-constexpr auto select_map(
-    std::array<Key, N> const& keys,
-    std::array<Value, N> const& values,
-    Value const& default_value) {
+template <class Enum, size_t N, class BaseT, BaseT Min, BaseT Max>
+constexpr auto select_map(std::array<Enum, N> const& keys) {
     // If we have a large sparse map, select binary_dedup_map. Otherwise, select
     // the indexed map, which should be faster, but may use more memory
     if constexpr (Max - Min > 2 * N + 256) {
-        return binary_dedup_map<Key, Value, N>(keys, values, default_value);
+        return binary_dedup_map<Enum, N>(keys);
     } else {
-        return indexed_map<Key, Value, BaseT, Min, Max>(
-            keys,
-            values,
-            default_value);
+        return indexed_map<Enum, BaseT, Min, Max>(keys);
     }
 }
 
@@ -770,18 +739,16 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         name_lengths.data());
     constexpr static base_type min = impl::min_base_value<base_type>(values);
     constexpr static base_type max = impl::max_base_value<base_type>(values);
-    constexpr static auto values_to_names = impl::
-        select_map<EnumType, std::string_view, size, base_type, min, max>(
-            values,
-            names,
-            "<unnamed>");
+    constexpr static auto
+        values_to_names = impl::select_map<EnumType, size, base_type, min, max>(
+            values);
     constexpr static auto
         names_to_values = impl::binary_map<std::string_view, EnumType, size>(
             names,
             values);
     constexpr static auto lowercase_names_to_values = impl::
         binary_map<std::string_view, EnumType, size>(lowercase_names, values);
-    constexpr static std::optional<EnumType> get_value(std::string_view name) {
+    constexpr static optional_enum<EnumType> get_value(std::string_view name) {
         return names_to_values[name];
     }
     constexpr static EnumType get_value(
@@ -789,7 +756,7 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         EnumType alternative) {
         return names_to_values.get(name, alternative);
     }
-    constexpr static std::optional<EnumType> get_value_ignore_case(
+    constexpr static optional_enum<EnumType> get_value_ignore_case(
         std::string_view name) {
         if (name.size() > max_name_length) {
             return std::nullopt;
@@ -820,7 +787,7 @@ struct enum_traits : private impl::traits_impl<EnumType> {
                 alternative);
         }
     }
-    constexpr static std::optional<std::string_view> get_name(EnumType value) {
+    constexpr static optional_enum<EnumType> get_name(EnumType value) {
         return values_to_names[value];
     }
     constexpr static std::string_view get_name(

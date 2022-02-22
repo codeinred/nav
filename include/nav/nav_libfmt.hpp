@@ -73,7 +73,7 @@ struct fmt::formatter<Enum> : private fmt::formatter<std::string_view> {
             default: // If the presentation format is invalid, use this
             case Name: {
                 if (auto name = traits::get_name(value)) {
-                    return super::format(*name, ctx);
+                    return super::format(name.name(), ctx);
                 } else {
                     char buffer[traits::type_name.size() + 32] {};
                     auto base_val = base_type(value);
@@ -98,7 +98,7 @@ struct fmt::formatter<Enum> : private fmt::formatter<std::string_view> {
                         buffer,
                         "{}::{}",
                         traits::type_name,
-                        *name);
+                        name.name());
                 } else {
                     auto base_val = base_type(value);
 
@@ -122,7 +122,7 @@ struct fmt::formatter<Enum> : private fmt::formatter<std::string_view> {
                         buffer,
                         "{}::{}",
                         traits::qualified_type_name,
-                        *name);
+                        name.name());
                 } else {
                     auto base_val = base_type(value);
 
