@@ -42,6 +42,13 @@ struct view {
         return _begin[i];
     }
 };
+
+// Represents a key-value pair in a map
+template <class Key, class Value>
+struct map_entry {
+    Key key {};
+    Value value {};
+};
 } // namespace nav
 
 // Enum maker - used to compute enum values. This allows us to avoid
@@ -171,7 +178,10 @@ constexpr T max_elem(T const* ptr) {
     }
 }
 template <class T>
-constexpr auto compare(T a, T b) {
+constexpr auto compare(T const& a, T const& b) {
+#if __cpp_impl_three_way_comparison >= 201907L
+    return a <=> b;
+#else
     if (a < b) {
         return -1;
     } else if (a > b) {
@@ -179,10 +189,20 @@ constexpr auto compare(T a, T b) {
     } else {
         return 0;
     }
+#endif
 }
 constexpr auto compare(std::string_view a, std::string_view b) {
     return a.compare(b);
 }
+template <class K, class V>
+constexpr auto compare(map_entry<K, V> const& entry, K const& other) {
+    return impl::compare(entry.key, other);
+}
+template <class K, class V>
+constexpr auto compare(map_entry<K, V> const& a, map_entry<K, V> const& b) {
+    return impl::compare(a.key, b.key);
+}
+
 template <class T>
 constexpr void swap(T& a, T& b) {
     auto Tmp = static_cast<T&&>(a);
@@ -250,14 +270,15 @@ class indexed_map {
 
 // Stably sorts and de-duplicates an array, returning a new number of elements
 // stably sorted with duplicates removed
-template <size_t N, class T, class Cmp>
-constexpr void sort(T* values, Cmp less) {
+template <size_t N, class T>
+constexpr void sort(T* values) {
+    using impl::compare;
     if constexpr (N <= 1) {
         return;
     } else if constexpr (N == 2) {
         auto& a = values[0];
         auto& b = values[1];
-        if (less(b, a)) {
+        if (compare(b, a) < 0) {
             impl::swap(a, b);
         }
         return;
@@ -268,14 +289,14 @@ constexpr void sort(T* values, Cmp less) {
         T* a2 = values + first_half;
         T* const end1 = values + first_half;
         T* const end2 = values + N;
-        sort<first_half>(a1, less);
-        sort<second_half>(a2, less);
+        sort<first_half>(a1);
+        sort<second_half>(a2);
 
         T buffer[N] {};
 
         T* dest = buffer;
         while (a1 < end1 && a2 < end2) {
-            *dest++ = less(*a2, *a1) ? *a2++ : *a1++;
+            *dest++ = compare(*a2, *a1) < 0 ? *a2++ : *a1++;
         }
         if (a1 == end1) {
             while (a2 < end2) {
@@ -294,16 +315,17 @@ constexpr void sort(T* values, Cmp less) {
 }
 // Stably sorts and de-duplicates an array, returning a new number of elements
 // stably sorted with duplicates removed
-template <size_t N, class T, class Cmp>
-constexpr size_t sort_dedup(T* values, Cmp less) {
+template <size_t N, class T>
+constexpr size_t sort_dedup(T* values) {
+    using impl::compare;
     if constexpr (N <= 1) {
         return N;
     } else if constexpr (N == 2) {
         auto& a = values[0];
         auto& b = values[1];
-        if (less(a, b)) {
+        if (compare(a, b) < 0) {
             return N;
-        } else if (less(b, a)) {
+        } else if (compare(b, a) < 0) {
             impl::swap(a, b);
             return N;
         } else {
@@ -311,8 +333,8 @@ constexpr size_t sort_dedup(T* values, Cmp less) {
             return 1;
         }
     } else {
-        size_t first_half = sort_dedup<N / 2>(values, less);
-        size_t second_half = sort_dedup<N - N / 2>(values + N / 2, less);
+        size_t first_half = sort_dedup<N / 2>(values);
+        size_t second_half = sort_dedup<N - N / 2>(values + N / 2);
 
         T buffer[N];
         size_t count = 0;
@@ -324,9 +346,10 @@ constexpr size_t sort_dedup(T* values, Cmp less) {
             T* const end1 = a1 + first_half;
             T* const end2 = a2 + second_half;
             while (a1 < end1 && a2 < end2) {
-                if (less(*a1, *a2)) {
+                int cmp = compare(*a1, *a2);
+                if (cmp < 0) {
                     *dest++ = *a1++;
-                } else if (less(*a2, *a1)) {
+                } else if (cmp > 0) {
                     *dest++ = *a2++;
                 } else {
                     // Discard the element from a2, since that's the duplicate
@@ -355,10 +378,7 @@ constexpr size_t sort_dedup(T* values, Cmp less) {
 }
 template <class Key, class Value, size_t N>
 class binary_dedup_map {
-    struct Entry {
-        Key key {};
-        Value value {};
-    };
+    using Entry = map_entry<Key, Value>;
     Value default_value {};
     std::array<Entry, N> entries;
     size_t count = 0;
@@ -376,9 +396,7 @@ class binary_dedup_map {
         }
         // Stably sort and deduplicate entries. Compute count to be the number
         // of entries after deduplication
-        count = sort_dedup<N>(
-            entries.data(),
-            [](auto const& e1, auto const& e2) { return e1.key < e2.key; });
+        count = sort_dedup<N>(entries.data());
     }
     constexpr bool contains(Key key) const {
         size_t lower_i = 0;
@@ -430,10 +448,7 @@ class binary_dedup_map {
 // item wasn't found.
 template <class Key, class Value, size_t N>
 class binary_map {
-    struct Entry {
-        Key key {};
-        Value value {};
-    };
+    using Entry = map_entry<Key, Value>;
     std::array<Entry, N> entries;
     // count <= N (It's the count with duplicates removed)
 
@@ -447,9 +462,7 @@ class binary_map {
         }
         // Stably sort and deduplicate entries. Compute count to be the number
         // of entries after deduplication
-        impl::sort<N>(entries.data(), [](auto const& e1, auto const& e2) {
-            return e1.key < e2.key;
-        });
+        impl::sort<N>(entries.data());
     }
     constexpr bool contains(Key key) const {
         size_t lower_i = 0;
