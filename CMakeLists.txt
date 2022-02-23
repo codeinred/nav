@@ -132,6 +132,7 @@ if(PROJECT_IS_TOP_LEVEL)
     include(CTest)
     include(Catch)
     catch_discover_tests(nav_core)
+    catch_discover_tests(nav_extra)
 endif()
 
 
