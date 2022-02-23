@@ -196,13 +196,30 @@ constexpr auto compare(std::string_view a, std::string_view b) {
 }
 template <class K, class V>
 constexpr auto compare(map_entry<K, V> const& entry, K const& other) {
-    return impl::compare(entry.key, other);
+    return compare(entry.key, other);
 }
 template <class K, class V>
 constexpr auto compare(map_entry<K, V> const& a, map_entry<K, V> const& b) {
-    return impl::compare(a.key, b.key);
+    return compare(a.key, b.key);
 }
+template <class T, class K>
+constexpr auto binary_search(view<T> vals, K key) -> T const* {
+    size_t lower_i = 0;
+    size_t upper_i = vals.size() - 1;
+    while (lower_i <= upper_i) {
+        size_t i = (lower_i + upper_i) / 2;
+        auto cmp = compare(vals[i], key);
 
+        if (cmp < 0) {
+            lower_i = i + 1;
+        } else if (cmp > 0) {
+            upper_i = i - 1;
+        } else {
+            return &vals[i];
+        }
+    }
+    return nullptr;
+}
 template <class T>
 constexpr void swap(T& a, T& b) {
     auto Tmp = static_cast<T&&>(a);
@@ -399,21 +416,7 @@ class binary_dedup_map {
         count = sort_dedup<N>(entries.data());
     }
     constexpr bool contains(Key key) const {
-        size_t lower_i = 0;
-        size_t upper_i = count - 1;
-        while (lower_i <= upper_i) {
-            size_t i = (lower_i + upper_i) / 2;
-            int cmp = impl::compare(entries[i].key, key);
-
-            if (cmp < 0) {
-                lower_i = i + 1;
-            } else if (cmp > 0) {
-                upper_i = i - 1;
-            } else {
-                return true;
-            }
-        }
-        return false;
+        return binary_search(view(entries.data(), count), key) != nullptr;
     }
     constexpr auto get(Key key) const -> std::optional<Value> {
         return (*this)[key];
@@ -426,21 +429,11 @@ class binary_dedup_map {
         }
     }
     constexpr auto operator[](Key key) const -> std::optional<Value> {
-        size_t lower_i = 0;
-        size_t upper_i = count - 1;
-        while (lower_i <= upper_i) {
-            size_t i = (lower_i + upper_i) / 2;
-            int cmp = impl::compare(entries[i].key, key);
-
-            if (cmp < 0) {
-                lower_i = i + 1;
-            } else if (cmp > 0) {
-                upper_i = i - 1;
-            } else {
-                return entries[i].value;
-            }
+        if(Entry const* entry = binary_search(view(entries.data(), count), key)) {
+            return entry->value;
+        } else {
+            return std::nullopt;
         }
-        return std::nullopt;
     }
 };
 
@@ -465,21 +458,7 @@ class binary_map {
         impl::sort<N>(entries.data());
     }
     constexpr bool contains(Key key) const {
-        size_t lower_i = 0;
-        size_t upper_i = N - 1;
-        while (lower_i <= upper_i) {
-            size_t i = (lower_i + upper_i) / 2;
-            int cmp = impl::compare(entries[i].key, key);
-
-            if (cmp < 0) {
-                lower_i = i + 1;
-            } else if (cmp > 0) {
-                upper_i = i - 1;
-            } else {
-                return true;
-            }
-        }
-        return false;
+        return binary_search(view(entries), key) != nullptr;
     }
     constexpr auto get(Key key) const -> std::optional<Value> {
         return (*this)[key];
@@ -492,21 +471,11 @@ class binary_map {
         }
     }
     constexpr auto operator[](Key key) const -> std::optional<Value> {
-        size_t lower_i = 0;
-        size_t upper_i = N - 1;
-        while (lower_i <= upper_i) {
-            size_t i = (lower_i + upper_i) / 2;
-            int cmp = impl::compare(entries[i].key, key);
-
-            if (cmp < 0) {
-                lower_i = i + 1;
-            } else if (cmp > 0) {
-                upper_i = i - 1;
-            } else {
-                return entries[i].value;
-            }
+        if(Entry const* entry = binary_search(view(entries), key)) {
+            return entry->value;
+        } else {
+            return std::nullopt;
         }
-        return std::nullopt;
     }
 
     constexpr view<Entry> get_entries() const {
