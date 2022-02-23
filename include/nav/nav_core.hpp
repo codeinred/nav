@@ -399,8 +399,6 @@ class binary_dedup_map {
     Value default_value {};
     std::array<Entry, N> entries;
     size_t count = 0;
-    // count <= N (It's the count with duplicates removed)
-
 
    public:
     constexpr binary_dedup_map(
@@ -443,8 +441,6 @@ template <class Key, class Value, size_t N>
 class binary_map {
     using Entry = map_entry<Key, Value>;
     std::array<Entry, N> entries;
-    // count <= N (It's the count with duplicates removed)
-
 
    public:
     constexpr binary_map(
@@ -476,10 +472,6 @@ class binary_map {
         } else {
             return std::nullopt;
         }
-    }
-
-    constexpr view<Entry> get_entries() const {
-        return {entries.data(), entries.data() + N};
     }
     constexpr bool validate_map() const {
         for (size_t i = 1; i < entries.size(); i++) {

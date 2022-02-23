@@ -112,15 +112,6 @@ nav_declare_enum(
 std::ostream& operator<<(std::ostream& os, FooBar::FibonacciNumbers fib) {
     return os << "FibonacciNumbers(" << (int64_t)fib << ")";
 }
-template <class A, class B, size_t N>
-std::ostream& operator<<(
-    std::ostream& os,
-    nav::impl::binary_map<A, B, N> const& map) {
-    for (auto entry : map.get_entries()) {
-        os << entry.key << ": " << entry.value << "\n";
-    }
-    return os;
-}
 template <class T, size_t N>
 std::ostream& operator<<(std::ostream& os, std::array<T, N> const& arr) {
     if constexpr (N == 0) {
@@ -169,7 +160,6 @@ TEST_CASE(
     "[sparse-enum][fib][maps]") {
 
     using traits = nav::enum_traits<FooBar::FibonacciNumbers>;
-    INFO(traits::names_to_values);
     REQUIRE(traits::names_to_values.validate_map());
 }
 
