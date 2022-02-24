@@ -3,6 +3,73 @@
 #include <optional>
 #include <string_view>
 
+// TODO: Add function declarations + rewrite in terms of function declarations
+namespace nav {
+/**
+ * @brief Return the declared name of a value in an enumeration, and store it in
+ * `dest`. Return true on success, and false on failure. On failure, dest is
+ * unmodified.
+ *
+ * @tparam Enum the enumeration type
+ * @param value the value to name
+ * @param dest the place to store the name
+ * @param use_lowercase whether or not to use lowercase for the name
+ * @return true on success
+ * @return false on failure
+ */
+template <class Enum>
+[[nodiscard]] constexpr bool name_of(
+    Enum value,
+    std::string_view& dest,
+    bool use_lowercase = false) noexcept;
+
+/**
+ * @brief Return the declared name of a value in an enumeration. Return an
+ * optional containing the value on success, and return a null optional on
+ * failure.
+ *
+ * @tparam Enum the enueration type
+ * @param value the value to name
+ * @param use_lowercase whether or not to use lowercase for the name
+ * @return std::optional<std::string_view>
+ */
+template <class Enum>
+constexpr auto name_of(Enum value, bool use_lowercase = false) noexcept
+    -> std::optional<std::string_view>;
+
+/**
+ * @brief Get the value corresponding to a name, and store it in `dest`. Return
+ * true on success, and false on failure. On failure, dest is unmodified.
+ *
+ * @tparam Enum the enumeration type
+ * @param name the name
+ * @param dest the destination
+ * @param ignore_case whether or not to ignore case when looking up the name
+ * @return true on success
+ * @return false on failure
+ */
+template <class Enum>
+[[nodiscard]] constexpr bool value_of(
+    std::string_view name,
+    Enum& dest,
+    bool ignore_case = false) noexcept;
+
+/**
+ * @brief Get the value corresponding to a name. Return an optional containing
+ * the value on success, and return a null optional on failure.
+ *
+ * @tparam Enum the enumeration type
+ * @param name the name
+ * @param dest the destination
+ * @param ignore_case whether or not to ignore case when looking up the name
+ * @return some value, or nothing
+ */
+template <class Enum>
+constexpr auto value_of(
+    std::string_view name,
+    bool ignore_case = false) noexcept -> std::optional<Enum>;
+} // namespace nav
+
 namespace nav {
 // Small convinient view class
 template <class T>
@@ -427,7 +494,9 @@ class binary_dedup_map {
         }
     }
     constexpr auto operator[](Key key) const -> std::optional<Value> {
-        if(Entry const* entry = binary_search(view(entries.data(), count), key)) {
+        if (Entry const* entry = binary_search(
+                view(entries.data(), count),
+                key)) {
             return entry->value;
         } else {
             return std::nullopt;
@@ -446,6 +515,7 @@ class binary_map {
     std::array<Entry, N> entries;
 
     friend struct from_chars_helper<Value>;
+
    public:
     constexpr binary_map(
         std::array<Key, N> const& keys,
@@ -471,7 +541,7 @@ class binary_map {
         }
     }
     constexpr auto operator[](Key key) const -> std::optional<Value> {
-        if(Entry const* entry = binary_search(view(entries), key)) {
+        if (Entry const* entry = binary_search(view(entries), key)) {
             return entry->value;
         } else {
             return std::nullopt;
