@@ -2,7 +2,7 @@
 #include <charconv>
 #include <nav/nav_core.hpp>
 
-namespace nav::impl {
+namespace nav::detail {
 template <class Entry, class Fn>
 auto find_longest_prefix(view<Entry> vals, std::string_view string, Fn get_key)
     -> Entry const* {
@@ -42,7 +42,7 @@ struct from_chars_helper {
         return view {enum_traits<Enum>::names_to_values.entries};
     }
 };
-} // namespace nav::impl
+} // namespace nav::detail
 namespace nav {
 template <class Enum>
 std::from_chars_result from_chars(
@@ -54,7 +54,7 @@ std::from_chars_result from_chars(
             return entry->key;
         };
     constexpr auto names_and_values = view {
-        impl::from_chars_helper<Enum>::sorted_names_and_values()};
+        detail::from_chars_helper<Enum>::sorted_names_and_values()};
 
     using traits = enum_traits<Enum>;
 

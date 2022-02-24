@@ -120,7 +120,7 @@ struct map_entry {
 
 // Enum maker - used to compute enum values. This allows us to avoid
 // shennanigans involving recursive  macro expansions.
-namespace nav::impl {
+namespace nav::detail {
 template <class BaseT>
 struct enum_maker {
     BaseT value {};
@@ -356,14 +356,14 @@ class indexed_map {
 // stably sorted with duplicates removed
 template <size_t N, class T>
 constexpr void sort(T* values) {
-    using impl::compare;
+    using detail::compare;
     if constexpr (N <= 1) {
         return;
     } else if constexpr (N == 2) {
         auto& a = values[0];
         auto& b = values[1];
         if (compare(b, a) < 0) {
-            impl::swap(a, b);
+            detail::swap(a, b);
         }
         return;
     } else {
@@ -401,7 +401,7 @@ constexpr void sort(T* values) {
 // stably sorted with duplicates removed
 template <size_t N, class T>
 constexpr size_t sort_dedup(T* values) {
-    using impl::compare;
+    using detail::compare;
     if constexpr (N <= 1) {
         return N;
     } else if constexpr (N == 2) {
@@ -410,7 +410,7 @@ constexpr size_t sort_dedup(T* values) {
         if (compare(a, b) < 0) {
             return N;
         } else if (compare(b, a) < 0) {
-            impl::swap(a, b);
+            detail::swap(a, b);
             return N;
         } else {
             // We return 1 b/c we're discarding B
@@ -525,7 +525,7 @@ class binary_map {
         }
         // Stably sort and deduplicate entries. Compute count to be the number
         // of entries after deduplication
-        impl::sort<N>(entries.data());
+        detail::sort<N>(entries.data());
     }
     constexpr bool contains(Key key) const {
         return binary_search(view(entries), key) != nullptr;
@@ -712,13 +712,13 @@ constexpr size_t bit_ceil_minus_1(size_t i) {
     }
     return ceil;
 }
-} // namespace nav::impl
+} // namespace nav::detail
 
 namespace nav {
 template <class EnumType>
-struct enum_traits : private impl::traits_impl<EnumType> {
+struct enum_traits : private detail::traits_impl<EnumType> {
    private:
-    using super = impl::traits_impl<EnumType>;
+    using super = detail::traits_impl<EnumType>;
 
    public:
     using enum_type = EnumType;
@@ -728,13 +728,13 @@ struct enum_traits : private impl::traits_impl<EnumType> {
     using super::type_name;
     using super::values;
     constexpr static auto size = values.size();
-    constexpr static auto name_lengths = impl::map_array(
+    constexpr static auto name_lengths = detail::map_array(
         super::names_raw,
         [](std::string_view name) { return name.size(); });
 
    private:
     constexpr static size_t name_block_buffer_size = size
-                                                   + impl::fold(
+                                                   + detail::fold(
                                                          name_lengths.data(),
                                                          size,
                                                          0,
@@ -742,39 +742,39 @@ struct enum_traits : private impl::traits_impl<EnumType> {
                                                             size_t elem) {
                                                              return acc + elem;
                                                          });
-    constexpr static auto name_block = impl::static_cat<name_block_buffer_size>(
+    constexpr static auto name_block = detail::static_cat<name_block_buffer_size>(
         super::names_raw,
         '\0');
     constexpr static auto lowercase_name_block = map_array(
         name_block,
-        impl::to_lower);
+        detail::to_lower);
 
    public:
     /* A list of all the names in the enum, in declaration order */
-    constexpr static auto names = impl::split_by_lengths_assuming_sep(
+    constexpr static auto names = detail::split_by_lengths_assuming_sep(
         name_lengths,
         name_block.data());
 
    public:
     /* All the enum names, but lowercase. Provided to support lookup
      * operations that ignore case. */
-    constexpr static auto lowercase_names = impl::split_by_lengths_assuming_sep(
+    constexpr static auto lowercase_names = detail::split_by_lengths_assuming_sep(
         name_lengths,
         lowercase_name_block.data());
-    constexpr static size_t max_name_length = impl::max_elem<size>(
+    constexpr static size_t max_name_length = detail::max_elem<size>(
         name_lengths.data());
-    constexpr static base_type min = impl::min_base_value<base_type>(values);
-    constexpr static base_type max = impl::max_base_value<base_type>(values);
-    constexpr static auto values_to_names = impl::
+    constexpr static base_type min = detail::min_base_value<base_type>(values);
+    constexpr static base_type max = detail::max_base_value<base_type>(values);
+    constexpr static auto values_to_names = detail::
         select_map<EnumType, std::string_view, size, base_type, min, max>(
             values,
             names,
             "<unnamed>");
     constexpr static auto
-        names_to_values = impl::binary_map<std::string_view, EnumType, size>(
+        names_to_values = detail::binary_map<std::string_view, EnumType, size>(
             names,
             values);
-    constexpr static auto lowercase_names_to_values = impl::
+    constexpr static auto lowercase_names_to_values = detail::
         binary_map<std::string_view, EnumType, size>(lowercase_names, values);
     constexpr static std::optional<EnumType> get_value(std::string_view name) {
         return names_to_values[name];
@@ -791,7 +791,7 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         } else {
             char buffer[max_name_length + 1];
             for (size_t i = 0; i < name.size(); i++) {
-                buffer[i] = impl::to_lower(name[i]);
+                buffer[i] = detail::to_lower(name[i]);
             }
             buffer[name.size()] = '\0';
             return lowercase_names_to_values[std::string_view(
@@ -807,7 +807,7 @@ struct enum_traits : private impl::traits_impl<EnumType> {
         } else {
             char buffer[max_name_length + 1];
             for (size_t i = 0; i < name.size(); i++) {
-                buffer[i] = impl::to_lower(name[i]);
+                buffer[i] = detail::to_lower(name[i]);
             }
             buffer[name.size()] = '\0';
             return lowercase_names_to_values.get(
@@ -851,7 +851,7 @@ constexpr auto const& enum_names = enum_traits<T>::names;
 
 // Checks if an enum has associated traits
 template <class T>
-constexpr bool is_nav_enum = impl::traits_impl<T>::is_nav_enum;
+constexpr bool is_nav_enum = detail::traits_impl<T>::is_nav_enum;
 
 #if __cpp_concepts >= 201907L
 template <class T>
@@ -861,7 +861,7 @@ concept nav_enum = is_nav_enum<T>;
 
 #define nav_declare_enum(EnumType, BaseType, ...)                              \
     enum class EnumType : BaseType { __VA_ARGS__ };                            \
-    namespace nav::impl {                                                      \
+    namespace nav::detail {                                                      \
     template <>                                                                \
     struct traits_impl<EnumType> {                                             \
         constexpr static bool is_nav_enum = true;                              \
@@ -888,4 +888,4 @@ concept nav_enum = is_nav_enum<T>;
         constexpr static auto names_raw = split_trim<values.size()>(           \
             #__VA_ARGS__);                                                     \
     };                                                                         \
-    } // namespace nav::impl
+    } // namespace nav::detail

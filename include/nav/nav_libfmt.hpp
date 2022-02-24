@@ -88,7 +88,7 @@ struct fmt::formatter<Enum> : private fmt::formatter<std::string_view> {
             } break;
             case QualifiedName: {
                 constexpr size_t buff_size = traits::type_name.size()
-                                           + nav::impl::max(
+                                           + nav::detail::max(
                                                  size_t(32),
                                                  traits::max_name_length + 2);
                 char buffer[buff_size] {};
@@ -112,7 +112,7 @@ struct fmt::formatter<Enum> : private fmt::formatter<std::string_view> {
             } break;
             case FullName: {
                 constexpr size_t buff_size = traits::qualified_type_name.size()
-                                           + nav::impl::max(
+                                           + nav::detail::max(
                                                  size_t(32),
                                                  traits::max_name_length + 2);
                 char buffer[buff_size] {};

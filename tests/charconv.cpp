@@ -10,7 +10,7 @@
 std::string_view flp_test(
     nav::view<std::string_view> prefixes,
     std::string_view string) {
-    auto* result = nav::impl::find_longest_prefix(
+    auto* result = nav::detail::find_longest_prefix(
         prefixes,
         string,
         [](std::string_view sv) { return sv; });

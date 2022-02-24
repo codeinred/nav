@@ -59,10 +59,10 @@ constexpr auto caseless_levenshtein_distance =
     size_t lenB = std::min(MaxLength, strB.size());
 
     for (size_t i = 0; i < lenA; i++) {
-        buffA[i] = impl::to_lower(strA[i]);
+        buffA[i] = detail::to_lower(strA[i]);
     }
     for (size_t i = 0; i < lenB; i++) {
-        buffB[i] = impl::to_lower(strB[i]);
+        buffB[i] = detail::to_lower(strB[i]);
     }
     return levenshtein_distance<MaxLength>(
         std::string_view(buffA, lenA),
@@ -107,13 +107,13 @@ template <class Enum>
 constexpr static auto fuzzy_match_enum = [](std::string_view name,
                                             bool use_lowercase = true) {
     using traits = enum_traits<Enum>;
-    constexpr size_t MaxLength = impl::bit_ceil_minus_1(
+    constexpr size_t MaxLength = detail::bit_ceil_minus_1(
         traits::max_name_length * 2);
     char buff[MaxLength];
     if (use_lowercase) {
         size_t N = std::min(MaxLength, name.size());
         for (size_t i = 0; i < N; i++) {
-            buff[i] = impl::to_lower(name[i]);
+            buff[i] = detail::to_lower(name[i]);
         }
         name = std::string_view(buff, N);
     }
