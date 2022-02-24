@@ -435,6 +435,9 @@ class binary_dedup_map {
     }
 };
 
+template <class>
+struct from_chars_helper;
+
 // A map that returns an optional when you index into it. Returns nullopt if the
 // item wasn't found.
 template <class Key, class Value, size_t N>
@@ -442,6 +445,7 @@ class binary_map {
     using Entry = map_entry<Key, Value>;
     std::array<Entry, N> entries;
 
+    friend struct from_chars_helper<Value>;
    public:
     constexpr binary_map(
         std::array<Key, N> const& keys,
