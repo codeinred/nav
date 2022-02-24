@@ -5,24 +5,26 @@ project(
     VERSION 0.0.0
     DESCRIPTION "NAV: Reflection on Enumeration Names And Values"
     HOMEPAGE_URL "https://github.com/codeinred/nav/"
-    LANGUAGES CXX
-)
+    LANGUAGES CXX)
 
 add_library(nav INTERFACE)
-add_library(nav::nav ALIAS nav)
+add_library(
+    nav::nav
+    ALIAS
+    nav)
 
 # For ${CMAKE_INSTALL_<DIR>} variables that are standarized
 include(GNUInstallDirs)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+list(
+    APPEND
+    CMAKE_MODULE_PATH
+    "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 target_include_directories(
-    nav
-    INTERFACE
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
+    nav INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+                  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # Installation
 # See: https://dominikberner.ch/cmake-interface-lib/
@@ -32,38 +34,31 @@ install(
     EXPORT nav_Targets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
     "navConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
+    COMPATIBILITY SameMajorVersion)
 
 configure_package_config_file(
     "${PROJECT_SOURCE_DIR}/cmake/navConfig.cmake.in"
     "${PROJECT_BINARY_DIR}/navConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nav/cmake
-)
+    INSTALL_DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nav/cmake)
 
 install(
     EXPORT nav_Targets
     FILE navTargets.cmake
     NAMESPACE nav::
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nav/cmake
-)
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nav/cmake)
 
 install(FILES "${PROJECT_BINARY_DIR}/navConfig.cmake"
               "${PROJECT_BINARY_DIR}/navConfigVersion.cmake"
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nav/cmake
-)
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nav/cmake)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/nav
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 include(helper)
 
@@ -89,36 +84,18 @@ if(PROJECT_IS_TOP_LEVEL)
         nav::nav # Libraries to link against
         fmt::fmt)
 
-
-
     # Register test_nav as an executable
-    add_executable(
-        nav_core
-        tests/sparse_enums.cpp)
+    add_executable(nav_core tests/sparse_enums.cpp)
     add_executable(
         nav_extra
+        tests/fuzzy_match.cpp
         tests/nav_extra.cpp
-        tests/nav_iostream.cpp
-        tests/fuzzy_match.cpp)
-    add_executable(
-        nav_charconv
-        tests/charconv.cpp)
+        tests/nav_iostream.cpp)
+    add_executable(nav_charconv tests/charconv.cpp)
 
-    target_compile_features(
-        nav_core
-        PRIVATE
-        cxx_std_17
-    )
-    target_compile_features(
-        nav_charconv
-        PRIVATE
-        cxx_std_17
-    )
-    target_compile_features(
-        nav_extra
-        PRIVATE
-        cxx_std_20
-    )
+    target_compile_features(nav_core PRIVATE cxx_std_17)
+    target_compile_features(nav_charconv PRIVATE cxx_std_17)
+    target_compile_features(nav_extra PRIVATE cxx_std_20)
 
     # Tell CMake that test_nav should link against nav (our library), fmt,
     # and Catch2. We link against Catch2WithMain b/c we're using the main
@@ -141,12 +118,13 @@ if(PROJECT_IS_TOP_LEVEL)
 
     # Append places where Catch2 might be to the CMake Module path, so we can
     # use the function catch_discover_tests
-    list(APPEND CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/Catch2)
-    list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+    list(
+        APPEND
+        CMAKE_MODULE_PATH
+        ${CMAKE_INSTALL_PREFIX}/lib/cmake/Catch2
+        ${catch2_SOURCE_DIR}/extras)
     include(CTest)
     include(Catch)
     catch_discover_tests(nav_core)
     catch_discover_tests(nav_extra)
 endif()
-
-
