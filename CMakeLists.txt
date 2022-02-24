@@ -95,13 +95,22 @@ if(PROJECT_IS_TOP_LEVEL)
     add_executable(
         nav_core
         tests/sparse_enums.cpp)
-    add_executable(nav_extra
+    add_executable(
+        nav_extra
         tests/nav_extra.cpp
         tests/nav_iostream.cpp
         tests/fuzzy_match.cpp)
+    add_executable(
+        nav_charconv
+        tests/charconv.cpp)
 
     target_compile_features(
         nav_core
+        PRIVATE
+        cxx_std_17
+    )
+    target_compile_features(
+        nav_charconv
         PRIVATE
         cxx_std_17
     )
@@ -121,6 +130,11 @@ if(PROJECT_IS_TOP_LEVEL)
         Catch2::Catch2WithMain)
     target_link_libraries(
         nav_extra
+        nav::nav
+        fmt::fmt
+        Catch2::Catch2WithMain)
+    target_link_libraries(
+        nav_charconv
         nav::nav
         fmt::fmt
         Catch2::Catch2WithMain)
