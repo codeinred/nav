@@ -60,7 +60,7 @@ std::from_chars_result from_chars(
 
     map_entry<std::string_view, Enum> const* id = find_longest_prefix(
         names_and_values,
-        std::string_view(first, last),
+        std::string_view(first, last - first),
         get_key);
     if (id) {
         auto name = id->key;
