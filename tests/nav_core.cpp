@@ -18,10 +18,10 @@ nav_declare_enum(
     Violet = Red + Blue);
 
 TEST_CASE("Count values", "[core]") {
-    REQUIRE(nav::is_nav_enum_v<RainbowColors>);
-    REQUIRE(nav::num_states_v<RainbowColors> == 7);
-    REQUIRE(nav::enum_values_v<RainbowColors>.size() == 7);
-    REQUIRE(nav::enum_names_v<RainbowColors>.size() == 7);
+    REQUIRE(nav::is_nav_enum<RainbowColors>);
+    REQUIRE(nav::num_states<RainbowColors> == 7);
+    REQUIRE(nav::enum_values<RainbowColors>.size() == 7);
+    REQUIRE(nav::enum_names<RainbowColors>.size() == 7);
 }
 
 TEST_CASE("Traits", "[core]") {
@@ -38,8 +38,8 @@ TEST_CASE("Traits", "[core]") {
 }
 
 TEST_CASE("Check values", "[core]") {
-    auto names = nav::enum_names_v<RainbowColors>;
-    auto values = nav::enum_values_v<RainbowColors>;
+    auto names = nav::enum_names<RainbowColors>;
+    auto values = nav::enum_values<RainbowColors>;
 
     RainbowColors reference_values[] {
         RainbowColors::Red,
@@ -49,7 +49,7 @@ TEST_CASE("Check values", "[core]") {
         RainbowColors::Blue,
         RainbowColors::Indigo,
         RainbowColors::Violet};
-    for (int i = 0; i < nav::num_states_v<RainbowColors>; i++) {
+    for (int i = 0; i < nav::num_states<RainbowColors>; i++) {
         INFO(fmt::format(
             "values[{}] == RainbowColors::{} == RainbowColors(#{:0>6x})",
             i,
@@ -59,7 +59,7 @@ TEST_CASE("Check values", "[core]") {
     }
 }
 TEST_CASE("Check names", "[core]") {
-    auto names = nav::enum_names_v<RainbowColors>;
+    auto names = nav::enum_names<RainbowColors>;
     REQUIRE(names[0] == "Red");
     REQUIRE(names[1] == "Orange");
     REQUIRE(names[2] == "Yellow");
@@ -70,8 +70,8 @@ TEST_CASE("Check names", "[core]") {
 }
 
 TEST_CASE("Iterate over values", "[core]") {
-    auto names = nav::enum_names_v<RainbowColors>;
-    auto values = nav::enum_values_v<RainbowColors>;
+    auto names = nav::enum_names<RainbowColors>;
+    auto values = nav::enum_values<RainbowColors>;
 
     RainbowColors reference_values[] {
         RainbowColors::Red,
@@ -96,8 +96,8 @@ TEST_CASE("Iterate over values", "[core]") {
 
 
 TEST_CASE("Iterate over names", "[core]") {
-    auto names = nav::enum_names_v<RainbowColors>;
-    auto values = nav::enum_values_v<RainbowColors>;
+    auto names = nav::enum_names<RainbowColors>;
+    auto values = nav::enum_values<RainbowColors>;
 
     std::string_view reference_names[] {
         "Red",
@@ -120,7 +120,7 @@ TEST_CASE("Iterate over names", "[core]") {
 }
 
 TEST_CASE("Ensure names end with null terminator", "[core]") {
-    auto names = nav::enum_names_v<RainbowColors>;
+    auto names = nav::enum_names<RainbowColors>;
 
     for (std::string_view name : names) {
         char const* c_str = name.data();

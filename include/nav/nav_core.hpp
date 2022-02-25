@@ -242,16 +242,16 @@ struct enum_name_list : enum_type_info<Enum> {
 };
 
 template <class Enum>
-constexpr bool is_nav_enum_v = enum_type_info<Enum>::is_nav_enum;
+constexpr bool is_nav_enum = enum_type_info<Enum>::is_nav_enum;
 
 template <class Enum>
-constexpr size_t num_states_v = enum_type_info<Enum>::num_states;
+constexpr size_t num_states = enum_type_info<Enum>::num_states;
 
 template <class Enum>
-constexpr enum_value_list<Enum> enum_values_v {};
+constexpr enum_value_list<Enum> enum_values {};
 
 template <class Enum>
-constexpr enum_name_list<Enum> enum_names_v {};
+constexpr enum_name_list<Enum> enum_names {};
 } // namespace nav
 
 #define nav_declare_enum(EnumType, BaseType, ...)                              \

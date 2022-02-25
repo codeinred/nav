@@ -731,34 +731,6 @@ struct enum_traits : private detail::traits_impl<EnumType> {
     }
 };
 
-/**
- * @brief Get the number of declared states an enum has
- *
- * @tparam T the enum
- */
-template <class T>
-constexpr size_t enum_size = enum_traits<T>::size;
-
-/**
- * @brief Get the values declared for an enum, in declaration order
- *
- * @tparam T the enum
- */
-template <class T>
-constexpr auto const& enum_values = enum_traits<T>::values;
-
-/**
- * @brief Get the names of an enum's values, in declarattion order
- *
- * @tparam T the enum
- */
-template <class T>
-constexpr auto const& enum_names = enum_traits<T>::names;
-
-// Checks if an enum has associated traits
-template <class T>
-constexpr bool is_nav_enum = detail::traits_impl<T>::is_nav_enum;
-
 #if __cpp_concepts >= 201907L
 template <class T>
 concept nav_enum = is_nav_enum<T>;
