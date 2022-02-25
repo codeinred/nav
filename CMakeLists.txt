@@ -85,7 +85,7 @@ if(PROJECT_IS_TOP_LEVEL)
         fmt::fmt)
 
     # Register test_nav as an executable
-    add_executable(nav_core tests/nav_core.cpp)
+    add_executable(nav_core tests/nav_core.cpp tests/nav_lowercase.cpp)
     # add_executable(
     #     nav_extra
     #     tests/fuzzy_match.cpp
