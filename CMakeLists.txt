@@ -85,17 +85,17 @@ if(PROJECT_IS_TOP_LEVEL)
         fmt::fmt)
 
     # Register test_nav as an executable
-    add_executable(nav_core tests/sparse_enums.cpp)
-    add_executable(
-        nav_extra
-        tests/fuzzy_match.cpp
-        tests/nav_extra.cpp
-        tests/nav_iostream.cpp)
-    add_executable(nav_charconv tests/charconv.cpp)
+    add_executable(nav_core tests/nav_core.cpp)
+    # add_executable(
+    #     nav_extra
+    #     tests/fuzzy_match.cpp
+    #     tests/nav_extra.cpp
+    #     tests/nav_iostream.cpp)
+    # add_executable(nav_charconv tests/charconv.cpp)
 
     target_compile_features(nav_core PRIVATE cxx_std_17)
-    target_compile_features(nav_charconv PRIVATE cxx_std_17)
-    target_compile_features(nav_extra PRIVATE cxx_std_20)
+    # target_compile_features(nav_charconv PRIVATE cxx_std_17)
+    # target_compile_features(nav_extra PRIVATE cxx_std_20)
 
     # Tell CMake that test_nav should link against nav (our library), fmt,
     # and Catch2. We link against Catch2WithMain b/c we're using the main
@@ -105,16 +105,16 @@ if(PROJECT_IS_TOP_LEVEL)
         nav::nav
         fmt::fmt
         Catch2::Catch2WithMain)
-    target_link_libraries(
-        nav_extra
-        nav::nav
-        fmt::fmt
-        Catch2::Catch2WithMain)
-    target_link_libraries(
-        nav_charconv
-        nav::nav
-        fmt::fmt
-        Catch2::Catch2WithMain)
+    # target_link_libraries(
+    #     nav_extra
+    #     nav::nav
+    #     fmt::fmt
+    #     Catch2::Catch2WithMain)
+    # target_link_libraries(
+    #     nav_charconv
+    #     nav::nav
+    #     fmt::fmt
+    #     Catch2::Catch2WithMain)
 
     # Append places where Catch2 might be to the CMake Module path, so we can
     # use the function catch_discover_tests
@@ -126,5 +126,5 @@ if(PROJECT_IS_TOP_LEVEL)
     include(CTest)
     include(Catch)
     catch_discover_tests(nav_core)
-    catch_discover_tests(nav_extra)
+    # catch_discover_tests(nav_extra)
 endif()
