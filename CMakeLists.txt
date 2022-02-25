@@ -86,6 +86,8 @@ if(PROJECT_IS_TOP_LEVEL)
 
     # Register test_nav as an executable
     add_executable(nav_core tests/nav_core.cpp tests/nav_lowercase.cpp)
+    add_executable(nav_core_null_terminated tests/nav_core.cpp
+                                            tests/nav_lowercase.cpp)
     # add_executable(
     #     nav_extra
     #     tests/fuzzy_match.cpp
@@ -94,6 +96,10 @@ if(PROJECT_IS_TOP_LEVEL)
     # add_executable(nav_charconv tests/charconv.cpp)
 
     target_compile_features(nav_core PRIVATE cxx_std_17)
+    target_compile_features(nav_core_null_terminated PRIVATE cxx_std_17)
+
+    target_compile_definitions(nav_core_null_terminated
+                               PRIVATE "NAV_ADD_NULL_TERMINATORS=1")
     # target_compile_features(nav_charconv PRIVATE cxx_std_17)
     # target_compile_features(nav_extra PRIVATE cxx_std_20)
 
@@ -102,6 +108,11 @@ if(PROJECT_IS_TOP_LEVEL)
     # function provided by Catch2
     target_link_libraries(
         nav_core
+        nav::nav
+        fmt::fmt
+        Catch2::Catch2WithMain)
+    target_link_libraries(
+        nav_core_null_terminated
         nav::nav
         fmt::fmt
         Catch2::Catch2WithMain)
