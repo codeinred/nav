@@ -5,6 +5,10 @@
 #include <optional>
 #include <string_view>
 
+#ifndef NAV_ADD_NULL_TERMINATORS
+#define NAV_ADD_NULL_TERMINATORS 0
+#endif
+
 // TODO: Add function declarations + rewrite in terms of function declarations
 namespace nav {
 /**
@@ -209,9 +213,13 @@ template <size_t N, size_t StrSize>
 constexpr size_t compute_name_block_size(char const (&str)[StrSize]) {
     size_t total = 0;
     split_trim_apply<N>(str, [&](std::string_view sv) { total += sv.size(); });
-    // The name block size is the total count + N, because each name is null
-    // terminated.
+// The name block size is the total count + N, because each name is null
+// terminated.
+#if NAV_ADD_NULL_TERMINATORS
+    return total + N;
+#else
     return total;
+#endif
 }
 // Copy characters into the destination buffer and store the offsets in the
 // offsets variable. Names are separated by a '\0' character for compatibility
@@ -229,8 +237,14 @@ constexpr void write_names_and_sizes(
             dest[i] = source[i];
         }
         *offsets++ = current_offset;
+#if NAV_ADD_NULL_TERMINATORS
+        dest[size] = '\0';
+        dest += size + 1;
+        current_offset += size + 1;
+#else
         dest += size;
         current_offset += size;
+#endif
     });
     // The last offset holds the total length of the name block.
     *offsets = current_offset;
@@ -286,7 +300,11 @@ class string_block_iterator {
     constexpr auto operator*() const noexcept -> std::string_view {
         int off0 = indices[0];
         int off1 = indices[1];
+#if NAV_ADD_NULL_TERMINATORS
+        return std::string_view(data + off0, off1 - off0 - 1);
+#else
         return std::string_view(data + off0, off1 - off0);
+#endif
     }
 };
 
@@ -411,7 +429,11 @@ struct enum_name_list : enum_type_info<Enum> {
     }
     constexpr std::string_view operator[](size_t i) const noexcept {
         auto off1 = name_info.name_block.offsets[i];
+#if NAV_ADD_NULL_TERMINATORS
+        auto off2 = name_info.name_block.offsets[i + 1] - 1;
+#else
         auto off2 = name_info.name_block.offsets[i + 1];
+#endif
         return std::string_view(name_info.name_block.data + off1, off2 - off1);
     }
 };

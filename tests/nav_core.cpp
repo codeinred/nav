@@ -118,3 +118,21 @@ TEST_CASE("Iterate over names", "[core]") {
         REQUIRE(name == reference_names[index++]);
     }
 }
+
+#if NAV_ADD_NULL_TERMINATORS
+TEST_CASE("Ensure names end with null terminator", "[core]") {
+    auto names = nav::enum_names<RainbowColors>;
+
+    for (std::string_view name : names) {
+        char const* c_str = name.data();
+        size_t len = name.size();
+        INFO(fmt::format(
+            "len = {},\n"
+            "c_str = \"{}\"\n"
+            "(Obtained from nav::enum_names)",
+            len,
+            c_str));
+        REQUIRE(c_str[len] == '\0');
+    }
+}
+#endif
