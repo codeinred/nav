@@ -130,6 +130,95 @@ constexpr void write_names_and_sizes(
     // The last offset holds the total length of the name block.
     *offsets = current_offset;
 }
+class string_block_iterator {
+    char const* data {};
+    unsigned const* indices {};
+
+   public:
+    string_block_iterator() = default;
+    string_block_iterator(string_block_iterator const&) = default;
+    constexpr string_block_iterator(
+        char const* data,
+        unsigned const* indices) noexcept
+      : data(data)
+      , indices(indices) {}
+
+    constexpr string_block_iterator& operator++() noexcept {
+        indices++;
+        return *this;
+    }
+    constexpr string_block_iterator operator++(int) noexcept {
+        string_block_iterator previous_state = *this;
+        indices++;
+        return previous_state;
+    }
+    constexpr intptr_t operator-(
+        string_block_iterator const& other) const noexcept {
+        return indices - other.indices;
+    }
+    constexpr bool operator==(
+        string_block_iterator const& other) const noexcept {
+        return indices == other.indices;
+    }
+    constexpr bool operator!=(
+        string_block_iterator const& other) const noexcept {
+        return indices != other.indices;
+    }
+    constexpr auto operator*() const noexcept -> std::string_view {
+        int off0 = indices[0];
+        int off1 = indices[1];
+        return std::string_view(data + off0, off1 - off0 - 1);
+    }
+};
+
+template <size_t N, size_t BlockSize>
+struct string_block {
+    static_assert(
+        BlockSize >= N,
+        "The size of the block must be greater than or equal to the number of "
+        "strings");
+    char data[BlockSize] {};
+    unsigned offsets[N + 1] {};
+    string_block() = default;
+    string_block(string_block const&) = default;
+
+    /**
+     * @brief Constructs a string block by applying a given function to the
+     * block (allows blocks to be constructed in-place)
+     *
+     * @tparam Fn a function with the signature (string_block&) -> void
+     */
+    template <class Fn>
+    constexpr string_block(Fn&& func)
+      : string_block() {
+        func(*this);
+    }
+
+    /**
+     * @brief Constructs a string block by mapping a source block to this block
+     * using the given function (allows block to be constructed in-place)
+     *
+     * @tparam Fn a function with the signature (string_block const&,
+     * string_block&) -> void
+     */
+    template <class Fn>
+    constexpr string_block(string_block const& source, Fn&& func)
+      : string_block() {
+        func(source, *this);
+    }
+
+    using iterator = string_block_iterator;
+    using const_iterator = iterator;
+    constexpr iterator begin() const noexcept {
+        return iterator(data, offsets);
+    }
+    constexpr iterator end() const noexcept {
+        return iterator(data, offsets + N);
+    }
+    constexpr static size_t size() noexcept {
+        return N;
+    }
+};
 } // namespace nav::detail
 
 namespace nav::detail {
@@ -186,58 +275,18 @@ struct enum_name_list : enum_type_info<Enum> {
     using super = enum_type_info<Enum>;
 
    public:
-    class iterator {
-        unsigned off1 {};
-        unsigned off2 {};
-        unsigned const* index {};
-
-       public:
-        iterator() = default;
-        iterator(iterator const&) = default;
-        constexpr iterator(unsigned const* index) noexcept
-          : off1(index[0])
-          , off2(index[1])
-          , index(index) {}
-
-        constexpr iterator& operator++() noexcept {
-            index++;
-            off1 = off2;
-            off2 = index[1];
-            return *this;
-        }
-        constexpr iterator operator++(int) noexcept {
-            iterator previous_state = *this;
-            index++;
-            off1 = off2;
-            off2 = *index;
-            return previous_state;
-        }
-        constexpr intptr_t operator-(iterator const& other) const noexcept {
-            return index - other.index;
-        }
-        constexpr bool operator==(iterator const& other) const noexcept {
-            return index == other.index;
-        }
-        constexpr bool operator!=(iterator const& other) const noexcept {
-            return index != other.index;
-        }
-        constexpr auto operator*() const noexcept -> std::string_view {
-            return std::string_view(
-                name_info.name_block + off1,
-                off2 - off1 - 1);
-        }
-    };
+    using iterator = detail::string_block_iterator;
     using const_iterator = iterator;
     constexpr iterator begin() const noexcept {
-        return iterator(name_info.name_offsets);
+        return name_info.name_block.begin();
     }
     constexpr iterator end() const noexcept {
-        return iterator(name_info.name_offsets + super::num_states);
+        return name_info.name_block.end();
     }
     constexpr std::string_view operator[](size_t i) const noexcept {
-        auto off1 = name_info.name_offsets[i];
-        auto off2 = name_info.name_offsets[i + 1] - 1;
-        return std::string_view(name_info.name_block + off1, off2 - off1);
+        auto off1 = name_info.name_block.offsets[i];
+        auto off2 = name_info.name_block.offsets[i + 1] - 1;
+        return std::string_view(name_info.name_block.data + off1, off2 - off1);
     }
 };
 
@@ -292,15 +341,13 @@ constexpr enum_name_list<Enum> enum_names {};
         constexpr static size_t                                                \
             name_block_size = compute_name_block_size<num_states>(             \
                 #__VA_ARGS__);                                                 \
-        char name_block[name_block_size];                                      \
-        unsigned name_offsets[num_states + 1];                                 \
+        string_block<num_states, name_block_size> name_block;                  \
         constexpr enum_name_list_base()                                        \
-          : name_block()                                                       \
-          , name_offsets() {                                                   \
-            write_names_and_sizes<num_states>(                                 \
-                #__VA_ARGS__,                                                  \
-                name_block,                                                    \
-                name_offsets);                                                 \
-        }                                                                      \
+          : name_block([](auto& block) {                                       \
+              write_names_and_sizes<num_states>(                               \
+                  #__VA_ARGS__,                                                \
+                  block.data,                                                  \
+                  block.offsets);                                              \
+          }) {}                                                                \
     };                                                                         \
     } // namespace nav::detail
