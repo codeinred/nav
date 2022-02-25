@@ -358,6 +358,15 @@ struct string_block {
     constexpr static size_t block_size() noexcept {
         return BlockSize;
     }
+    constexpr std::string_view operator[](size_t i) const noexcept {
+        auto off1 = offsets[i];
+#if NAV_ADD_NULL_TERMINATORS
+        auto off2 = offsets[i + 1] - 1;
+#else
+        auto off2 = offsets[i + 1];
+#endif
+        return std::string_view(data + off1, off2 - off1);
+    }
 };
 } // namespace nav
 
@@ -428,13 +437,7 @@ struct enum_name_list : enum_type_info<Enum> {
         return name_info.name_block.end();
     }
     constexpr std::string_view operator[](size_t i) const noexcept {
-        auto off1 = name_info.name_block.offsets[i];
-#if NAV_ADD_NULL_TERMINATORS
-        auto off2 = name_info.name_block.offsets[i + 1] - 1;
-#else
-        auto off2 = name_info.name_block.offsets[i + 1];
-#endif
-        return std::string_view(name_info.name_block.data + off1, off2 - off1);
+        return name_info.name_block[i];
     }
 };
 
