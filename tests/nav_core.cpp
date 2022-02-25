@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <fmt/core.h>
 #include <nav/nav_core.hpp>
 #include <type_traits>
 
@@ -65,7 +66,7 @@ TEST_CASE("Iterate over values", "[core]") {
         RainbowColors::Violet};
 
     size_t index = 0;
-    for(RainbowColors value : values) {
+    for (RainbowColors value : values) {
         REQUIRE(value == reference_values[index]);
         index++;
     }
@@ -85,7 +86,23 @@ TEST_CASE("Iterate over names", "[core]") {
         "Violet"};
 
     size_t index = 0;
-    for(std::string_view name : names) {
+    for (std::string_view name : names) {
         REQUIRE(name == reference_names[index++]);
+    }
+}
+
+TEST_CASE("Ensure names end with null terminator", "[core]") {
+    auto names = nav::enum_names_v<RainbowColors>;
+
+    for (std::string_view name : names) {
+        char const* c_str = name.data();
+        size_t len = name.size();
+        INFO(fmt::format(
+            "len = {},\n"
+            "c_str = \"{}\"\n"
+            "(Obtained from nav::enum_names)",
+            len,
+            c_str));
+        REQUIRE(c_str[len] == '\0');
     }
 }
