@@ -55,110 +55,6 @@ struct map_entry {
 // Enum maker - used to compute enum values. This allows us to avoid
 // shennanigans involving recursive  macro expansions.
 namespace nav::detail {
-template <class BaseT>
-struct enum_maker {
-    BaseT value {};
-    bool is_set = false;
-    enum_maker() = default;
-    enum_maker(enum_maker const&) = default;
-
-    // Ignore values on creation. We only care about these on assignment
-    constexpr enum_maker(BaseT)
-      : enum_maker() {}
-
-    // Copy assignment should operate like normal
-    enum_maker& operator=(enum_maker const&) = default;
-
-    // Assigning a value results in is_set being true
-    template <class T>
-    constexpr enum_maker& operator=(T const& v) {
-        value = BaseT(v);
-        is_set = true;
-        return *this;
-    }
-
-    // clang-format off
-    constexpr auto operator+() const { return +value; }
-    constexpr auto operator-() const { return -value; }
-    constexpr auto operator!() const { return !value; }
-    constexpr auto operator~() const { return ~value; }
-    template <class T>
-    constexpr auto operator+(T other) const { return value + other; }
-    template <class T>
-    constexpr auto operator-(T other) const { return value - other; }
-    template <class T>
-    constexpr auto operator*(T other) const { return value * other; }
-    template <class T>
-    constexpr auto operator<<(T other) const { return value << other; }
-    template <class T>
-    constexpr auto operator>>(T other) const { return value >> other; }
-    template <class T>
-    constexpr auto operator<(T other) const { return value < other; }
-    template <class T>
-    constexpr auto operator>(T other) const { return value > other; }
-    template <class T>
-    constexpr auto operator<=(T other) const { return value <= other; }
-    template <class T>
-    constexpr auto operator>=(T other) const { return value >= other; }
-    template <class T>
-    constexpr auto operator=(T other) const { return value = other; }
-    template <class T>
-    constexpr auto operator==(T other) const { return value == other; }
-    template <class T>
-    constexpr auto operator!=(T other) const { return value != other; }
-    template <class T>
-    constexpr auto operator&(T other) const { return value & other; }
-    template <class T>
-    constexpr auto operator|(T other) const { return value | other; }
-    template <class T>
-    constexpr auto operator^(T other) const { return value ^ other; }
-    template <class T>
-    constexpr auto operator&&(T other) const { return value && other; }
-    template <class T>
-    constexpr auto operator||(T other) const { return value || other; }
-    #if __cpp_impl_three_way_comparison >= 201907L
-    template <class T>
-    constexpr auto operator<=>(T other) const { return value <=> other; }
-    #endif
-    // clang-format on
-
-    // Division and % have to be handled special, so that they're a no-op if
-    // is_set isn't true
-    template <class T>
-    constexpr auto operator/(T other) const {
-        return is_set ? value / other : value;
-    }
-    template <class T>
-    constexpr auto operator%(T other) const {
-        return is_set ? value % other : value;
-    }
-
-    constexpr operator BaseT() const {
-        return value;
-    }
-    template <class T>
-    constexpr explicit operator T() const {
-        return T(value);
-    }
-};
-
-template <class BaseT>
-struct value_assigner {
-    BaseT value {};
-
-    constexpr value_assigner& operator,(enum_maker<BaseT>& other) {
-        if (other.is_set) {
-            // Update the current value to be the one stored in the enum
-            value = other.value;
-        } else {
-            // set the enum value to be the current value
-            other = value;
-        }
-        // Also we increment the value we hold
-        value++;
-        return *this;
-    }
-};
 
 template <class T>
 constexpr T max(T const& a, T const& b) {
@@ -561,18 +457,6 @@ constexpr auto split_by_lengths_assuming_sep(
         offset += lengths[i] + 1;
     }
     return segments;
-}
-
-
-template <size_t N>
-constexpr auto get_top_name(char const (&str)[N]) {
-    std::string_view view(str, N - 1);
-    auto pos = view.find_last_of(':');
-    if (pos == view.npos) {
-        return view;
-    } else {
-        return view.substr(pos + 1);
-    }
 }
 
 template <
