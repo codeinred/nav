@@ -454,7 +454,7 @@ template <class Enum>
 constexpr enum_name_list<Enum> enum_names {};
 } // namespace nav
 
-#define nav_declare_enum(EnumType, BaseType, ...)                              \
+#define NAV_DECLARE_ENUM(EnumType, BaseType, ...)                              \
     enum class EnumType : BaseType { __VA_ARGS__ };                            \
     namespace nav::detail {                                                    \
     template <>                                                                \
@@ -504,4 +504,8 @@ constexpr enum_name_list<Enum> enum_names {};
     };                                                                         \
     } // namespace nav::detail
 
+#ifndef NAV_NO_PRETTY_MACROS
+#define nav_declare_enum(EnumType, BaseType, ...)                              \
+    NAV_DECLARE_ENUM(EnumType, BaseType, __VA_ARGS__)
+#endif
 #endif
