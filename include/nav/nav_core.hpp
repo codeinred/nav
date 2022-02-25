@@ -167,7 +167,15 @@ struct enum_value_list : enum_type_info<Enum> {
     using super = enum_type_info<Enum>;
 
    public:
-    constexpr Enum operator[](size_t i) const noexcept {
+    using iterator = Enum const*;
+    using const_iterator = Enum const*;
+    constexpr Enum const* begin() const noexcept {
+        return values.values;
+    }
+    constexpr Enum const* end() const noexcept {
+        return values.values + super::num_states;
+    }
+    constexpr Enum const& operator[](size_t i) const noexcept {
         return values.values[i];
     }
 };
@@ -178,6 +186,54 @@ struct enum_name_list : enum_type_info<Enum> {
     using super = enum_type_info<Enum>;
 
    public:
+    class iterator {
+        unsigned off1 {};
+        unsigned off2 {};
+        unsigned const* index {};
+
+       public:
+        iterator() = default;
+        iterator(iterator const&) = default;
+        constexpr iterator(unsigned const* index) noexcept
+          : off1(index[0])
+          , off2(index[1])
+          , index(index) {}
+
+        constexpr iterator& operator++() noexcept {
+            index++;
+            off1 = off2;
+            off2 = index[1];
+            return *this;
+        }
+        constexpr iterator operator++(int) noexcept {
+            iterator previous_state = *this;
+            index++;
+            off1 = off2;
+            off2 = *index;
+            return previous_state;
+        }
+        constexpr intptr_t operator-(iterator const& other) const noexcept {
+            return index - other.index;
+        }
+        constexpr bool operator==(iterator const& other) const noexcept {
+            return index == other.index;
+        }
+        constexpr bool operator!=(iterator const& other) const noexcept {
+            return index != other.index;
+        }
+        constexpr auto operator*() const noexcept -> std::string_view {
+            return std::string_view(
+                name_info.name_block + off1,
+                off2 - off1 - 1);
+        }
+    };
+    using const_iterator = iterator;
+    constexpr iterator begin() const noexcept {
+        return iterator(name_info.name_offsets);
+    }
+    constexpr iterator end() const noexcept {
+        return iterator(name_info.name_offsets + super::num_states);
+    }
     constexpr std::string_view operator[](size_t i) const noexcept {
         auto off1 = name_info.name_offsets[i];
         auto off2 = name_info.name_offsets[i + 1] - 1;

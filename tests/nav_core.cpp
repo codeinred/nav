@@ -51,3 +51,41 @@ TEST_CASE("Check names", "[core]") {
     REQUIRE(rainbow_names[5] == "Indigo");
     REQUIRE(rainbow_names[6] == "Violet");
 }
+
+TEST_CASE("Iterate over values", "[core]") {
+    auto values = nav::enum_values_v<RainbowColors>;
+
+    RainbowColors reference_values[] {
+        RainbowColors::Red,
+        RainbowColors::Orange,
+        RainbowColors::Yellow,
+        RainbowColors::Green,
+        RainbowColors::Blue,
+        RainbowColors::Indigo,
+        RainbowColors::Violet};
+
+    size_t index = 0;
+    for(RainbowColors value : values) {
+        REQUIRE(value == reference_values[index]);
+        index++;
+    }
+}
+
+
+TEST_CASE("Iterate over names", "[core]") {
+    auto names = nav::enum_names_v<RainbowColors>;
+
+    std::string_view reference_names[] {
+        "Red",
+        "Orange",
+        "Yellow",
+        "Green",
+        "Blue",
+        "Indigo",
+        "Violet"};
+
+    size_t index = 0;
+    for(std::string_view name : names) {
+        REQUIRE(name == reference_names[index++]);
+    }
+}
