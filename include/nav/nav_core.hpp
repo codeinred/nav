@@ -76,6 +76,35 @@ constexpr auto value_of(
     bool ignore_case = false) noexcept -> std::optional<Enum>;
 } // namespace nav
 
+// Functions to get the name of a type at compile time
+namespace nav {
+template <class T>
+constexpr std::string_view get_name_of_type() {
+#ifdef __GNUC__
+    // GCC: constexpr name_of_type get_name_of_type() [with T = int]
+    // Clang
+    constexpr std::string_view name = __PRETTY_FUNCTION__;
+    size_t start = name.find("T = ") + 4;
+#if defined(__clang__) || defined(__INTEL_COMPILER)
+    size_t end = name.rfind("]");
+#else
+    size_t end = name.rfind("; std::string_view = ");
+#endif
+    return name.substr(start, end - start);
+#elif _MSC_VER
+    constexpr std::string_view name = __FUNCSIG__;
+    std::string_view start_token = "get_name_of_type<";
+    size_t start = name.find(start_token) + start_token.size();
+    size_t end = name.rfind(">(void)");
+    return name.substr(start, end - start);
+#else
+    return "<unknown type>";
+#endif
+};
+template <class T>
+constexpr std::string_view name_of_type = get_name_of_type<T>();
+} // namespace nav
+
 namespace nav::detail {
 template <class BaseT>
 struct enum_maker {
@@ -250,15 +279,17 @@ constexpr void write_names_and_sizes(
     *offsets = current_offset;
 }
 
-template <size_t N>
-constexpr auto get_top_name(char const (&str)[N]) {
-    std::string_view view(str, N - 1);
+constexpr auto get_top_name(std::string_view view) {
     auto pos = view.find_last_of(':');
     if (pos == view.npos) {
         return view;
     } else {
         return view.substr(pos + 1);
     }
+}
+template <size_t N>
+constexpr auto get_top_name(char const (&str)[N]) {
+    return get_top_name(std::string_view(str, N - 1));
 }
 } // namespace nav::detail
 
@@ -374,15 +405,28 @@ namespace nav::detail {
 // Base type for enum_type_info
 template <class Enum>
 struct enum_type_info_base {
-    constexpr static size_t size = 0;
+    constexpr static std::string_view qualified_type_name {name_of_type<Enum>};
+    constexpr static std::string_view type_name {
+        get_top_name(name_of_type<Enum>)};
+    constexpr static size_t num_states = 0;
     constexpr static bool is_nav_enum = false;
+    constexpr static size_t size() noexcept {
+        return 0;
+    }
 };
 // Base type for enum_values
 template <class Enum>
-struct enum_value_list_base {};
+struct enum_value_list_base : enum_type_info_base<Enum> {
+    Enum values[0] {};
+};
 // Base type for enum_names
 template <class Enum>
-struct enum_name_list_base {};
+struct enum_name_list_base : enum_type_info_base<Enum> {
+    using enum_type_info_base<Enum>::num_states;
+    constexpr static size_t name_block_size = 0;
+    using block_type = string_block<num_states, name_block_size>;
+    block_type name_block;
+};
 } // namespace nav::detail
 
 namespace nav {

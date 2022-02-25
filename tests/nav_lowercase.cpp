@@ -54,6 +54,18 @@ TEST_CASE("Iterate over lowercase names", "[lowercase]") {
         REQUIRE(name == reference_names[index++]);
     }
 }
+
+TEST_CASE(
+    "Check that nav lowercase behaves sensibly for undeclared enums",
+    "[lowercase][empty]") {
+    enum class UnknownEnum { A, B, C };
+
+    REQUIRE(nav::lowercase_enum_names<UnknownEnum>.size() == 0);
+    REQUIRE(
+        nav::lowercase_enum_names<UnknownEnum>.begin()
+        == nav::lowercase_enum_names<UnknownEnum>.end());
+}
+
 #if NAV_ADD_NULL_TERMINATORS
 TEST_CASE("Ensure lowercase names end with null terminator", "[lowercase]") {
     auto names = nav::lowercase_enum_names<RainbowColors>;

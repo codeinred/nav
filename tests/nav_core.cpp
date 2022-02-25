@@ -119,6 +119,29 @@ TEST_CASE("Iterate over names", "[core]") {
     }
 }
 
+TEST_CASE(
+    "Check that nav behaves sensibly for undeclared enums",
+    "[core][empty]") {
+    enum class UnknownEnum { A, B, C };
+
+    INFO(fmt::format(
+        "Deduced qualified type name: {}\n"
+        "Deduced type name: {}",
+        nav::enum_type_info<UnknownEnum>::qualified_type_name,
+        nav::enum_type_info<UnknownEnum>::type_name));
+    CHECK(nav::enum_type_info<UnknownEnum>::type_name == "UnknownEnum");
+    REQUIRE_FALSE(nav::is_nav_enum<UnknownEnum>);
+    REQUIRE(nav::enum_names<UnknownEnum>.size() == 0);
+    REQUIRE(
+        nav::enum_names<UnknownEnum>.begin()
+        == nav::enum_names<UnknownEnum>.end());
+
+    REQUIRE(nav::enum_values<UnknownEnum>.size() == 0);
+    REQUIRE(
+        nav::enum_values<UnknownEnum>.begin()
+        == nav::enum_values<UnknownEnum>.end());
+}
+
 #if NAV_ADD_NULL_TERMINATORS
 TEST_CASE("Ensure names end with null terminator", "[core]") {
     auto names = nav::enum_names<RainbowColors>;
