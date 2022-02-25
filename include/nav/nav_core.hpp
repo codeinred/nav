@@ -130,6 +130,9 @@ constexpr void write_names_and_sizes(
     // The last offset holds the total length of the name block.
     *offsets = current_offset;
 }
+} // namespace nav::detail
+
+namespace nav {
 class string_block_iterator {
     char const* data {};
     unsigned const* indices {};
@@ -222,7 +225,7 @@ struct string_block {
         return BlockSize;
     }
 };
-} // namespace nav::detail
+} // namespace nav
 
 namespace nav::detail {
 // Base type for enum_type_info
@@ -279,7 +282,7 @@ struct enum_name_list : enum_type_info<Enum> {
 
    public:
     using block_type = typename detail::enum_name_list_base<Enum>::block_type;
-    using iterator = detail::string_block_iterator;
+    using iterator = string_block_iterator;
     using const_iterator = iterator;
     constexpr static block_type const& get_name_block() noexcept {
         return name_info.name_block;

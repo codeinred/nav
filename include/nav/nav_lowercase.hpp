@@ -25,7 +25,7 @@ struct lowercase_enum_name_list : enum_type_info<Enum> {
     }};
 
    public:
-    using iterator = detail::string_block_iterator;
+    using iterator = string_block_iterator;
     using const_iterator = iterator;
     constexpr iterator begin() const noexcept {
         return name_block.begin();
