@@ -1,4 +1,6 @@
-#pragma once
+#ifndef NAV_NAV_CORE
+#define NAV_NAV_CORE
+
 #include <array>
 #include <optional>
 #include <string_view>
@@ -477,3 +479,5 @@ constexpr enum_name_list<Enum> enum_names {};
           }) {}                                                                \
     };                                                                         \
     } // namespace nav::detail
+
+#endif

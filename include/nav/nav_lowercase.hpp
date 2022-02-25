@@ -1,5 +1,11 @@
-#pragma once
-#include <nav/nav_core.hpp>
+#ifndef NAV_NAV_LOWERCASE
+#define NAV_NAV_LOWERCASE
+
+// Checking for this makes it easier to use in places like godbolt where it's
+// being loaded from github
+#ifndef NAV_NAV_CORE
+#include "nav_core.hpp"
+#endif
 
 namespace nav {
 template <class Enum>
@@ -43,3 +49,5 @@ struct lowercase_enum_name_list : enum_type_info<Enum> {
 template <class Enum>
 constexpr lowercase_enum_name_list<Enum> lowercase_enum_names {};
 } // namespace nav
+
+#endif
