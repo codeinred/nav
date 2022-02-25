@@ -211,7 +211,7 @@ constexpr size_t compute_name_block_size(char const (&str)[StrSize]) {
     split_trim_apply<N>(str, [&](std::string_view sv) { total += sv.size(); });
     // The name block size is the total count + N, because each name is null
     // terminated.
-    return total + N;
+    return total;
 }
 // Copy characters into the destination buffer and store the offsets in the
 // offsets variable. Names are separated by a '\0' character for compatibility
@@ -228,10 +228,9 @@ constexpr void write_names_and_sizes(
         for (size_t i = 0; i < size; i++) {
             dest[i] = source[i];
         }
-        dest[size] = '\0';
         *offsets++ = current_offset;
-        dest += size + 1;
-        current_offset += size + 1;
+        dest += size;
+        current_offset += size;
     });
     // The last offset holds the total length of the name block.
     *offsets = current_offset;
@@ -287,7 +286,7 @@ class string_block_iterator {
     constexpr auto operator*() const noexcept -> std::string_view {
         int off0 = indices[0];
         int off1 = indices[1];
-        return std::string_view(data + off0, off1 - off0 - 1);
+        return std::string_view(data + off0, off1 - off0);
     }
 };
 
@@ -412,7 +411,7 @@ struct enum_name_list : enum_type_info<Enum> {
     }
     constexpr std::string_view operator[](size_t i) const noexcept {
         auto off1 = name_info.name_block.offsets[i];
-        auto off2 = name_info.name_block.offsets[i + 1] - 1;
+        auto off2 = name_info.name_block.offsets[i + 1];
         return std::string_view(name_info.name_block.data + off1, off2 - off1);
     }
 };

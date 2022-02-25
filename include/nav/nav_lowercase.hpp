@@ -41,7 +41,7 @@ struct lowercase_enum_name_list : enum_type_info<Enum> {
     }
     constexpr std::string_view operator[](size_t i) const noexcept {
         auto off1 = name_block.offsets[i];
-        auto off2 = name_block.offsets[i + 1] - 1;
+        auto off2 = name_block.offsets[i + 1];
         return std::string_view(name_block.data + off1, off2 - off1);
     }
 };

@@ -54,19 +54,3 @@ TEST_CASE("Iterate over lowercase names", "[lowercase]") {
         REQUIRE(name == reference_names[index++]);
     }
 }
-
-TEST_CASE("Ensure lowercase names end with null terminator", "[lowercase]") {
-    auto names = nav::lowercase_enum_names<RainbowColors>;
-
-    for (std::string_view name : names) {
-        char const* c_str = name.data();
-        size_t len = name.size();
-        INFO(fmt::format(
-            "len = {},\n"
-            "c_str = \"{}\"\n"
-            "(Obtained from nav::lowercase_enum_names)",
-            len,
-            c_str));
-        REQUIRE(c_str[len] == '\0');
-    }
-}
