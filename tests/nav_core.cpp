@@ -6,13 +6,16 @@
 nav_declare_enum(
     RainbowColors,
     int,
-    Red,
-    Orange,
-    Yellow,
-    Green,
-    Blue,
-    Indigo,
-    Violet);
+    Red = 0xff0000,
+    // Orange is a mix of Red and Yellow (#ffff00)
+    Orange = (Red + 0xffff00) / 2 & 0xffff00,
+    Yellow = 0xffff00,
+    // Green is Yellow, without the Red
+    Green = Yellow - Red,
+    Blue = 0x0000ff,
+    Indigo = 0x8A2BE2,
+    // We're representing violet as Red + Blue
+    Violet = Red + Blue);
 
 TEST_CASE("Count values", "[core]") {
     REQUIRE(nav::is_nav_enum_v<RainbowColors>);
@@ -22,6 +25,10 @@ TEST_CASE("Count values", "[core]") {
 }
 
 TEST_CASE("Traits", "[core]") {
+    INFO("enum_value_list<Enum> is a stateless type that provides a way to get "
+         "and iterate over the values of an enumeration");
+    INFO("enum_name_list<Enum> is a stateless type that provides a way to get "
+         "and iterate over the names of an enumeration");
     REQUIRE(std::is_empty_v<nav::enum_type_info<RainbowColors>>);
     REQUIRE(std::is_empty_v<nav::enum_value_list<RainbowColors>>);
     REQUIRE(std::is_empty_v<nav::enum_name_list<RainbowColors>>);
@@ -31,29 +38,39 @@ TEST_CASE("Traits", "[core]") {
 }
 
 TEST_CASE("Check values", "[core]") {
-    auto rainbow_values = nav::enum_values_v<RainbowColors>;
-    INFO("enum_value_list<Enum> is a stateless type that provides a way to get "
-         "and iterate over the values of an enumeration");
-    REQUIRE(sizeof(rainbow_values) == 1);
+    auto names = nav::enum_names_v<RainbowColors>;
+    auto values = nav::enum_values_v<RainbowColors>;
+
+    RainbowColors reference_values[] {
+        RainbowColors::Red,
+        RainbowColors::Orange,
+        RainbowColors::Yellow,
+        RainbowColors::Green,
+        RainbowColors::Blue,
+        RainbowColors::Indigo,
+        RainbowColors::Violet};
     for (int i = 0; i < nav::num_states_v<RainbowColors>; i++) {
-        REQUIRE(rainbow_values[i] == RainbowColors(i));
+        INFO(fmt::format(
+            "values[{}] == RainbowColors::{} == RainbowColors(#{:0>6x})",
+            i,
+            names[i],
+            int(values[i])));
+        REQUIRE(values[i] == reference_values[i]);
     }
 }
 TEST_CASE("Check names", "[core]") {
-    auto rainbow_names = nav::enum_names_v<RainbowColors>;
-    INFO("enum_name_list<Enum> is a stateless type that provides a way to get "
-         "and iterate over the names of an enumeration");
-    REQUIRE(sizeof(rainbow_names) == 1);
-    REQUIRE(rainbow_names[0] == "Red");
-    REQUIRE(rainbow_names[1] == "Orange");
-    REQUIRE(rainbow_names[2] == "Yellow");
-    REQUIRE(rainbow_names[3] == "Green");
-    REQUIRE(rainbow_names[4] == "Blue");
-    REQUIRE(rainbow_names[5] == "Indigo");
-    REQUIRE(rainbow_names[6] == "Violet");
+    auto names = nav::enum_names_v<RainbowColors>;
+    REQUIRE(names[0] == "Red");
+    REQUIRE(names[1] == "Orange");
+    REQUIRE(names[2] == "Yellow");
+    REQUIRE(names[3] == "Green");
+    REQUIRE(names[4] == "Blue");
+    REQUIRE(names[5] == "Indigo");
+    REQUIRE(names[6] == "Violet");
 }
 
 TEST_CASE("Iterate over values", "[core]") {
+    auto names = nav::enum_names_v<RainbowColors>;
     auto values = nav::enum_values_v<RainbowColors>;
 
     RainbowColors reference_values[] {
@@ -67,6 +84,11 @@ TEST_CASE("Iterate over values", "[core]") {
 
     size_t index = 0;
     for (RainbowColors value : values) {
+        INFO(fmt::format(
+            "values[{}] == RainbowColors::{} == RainbowColors(#{:0>6x})",
+            index,
+            names[index],
+            int(values[index])));
         REQUIRE(value == reference_values[index]);
         index++;
     }
@@ -75,6 +97,7 @@ TEST_CASE("Iterate over values", "[core]") {
 
 TEST_CASE("Iterate over names", "[core]") {
     auto names = nav::enum_names_v<RainbowColors>;
+    auto values = nav::enum_values_v<RainbowColors>;
 
     std::string_view reference_names[] {
         "Red",
@@ -87,6 +110,11 @@ TEST_CASE("Iterate over names", "[core]") {
 
     size_t index = 0;
     for (std::string_view name : names) {
+        INFO(fmt::format(
+            "values[{}] == RainbowColors::{} == RainbowColors(#{:0>6x})",
+            index,
+            names[index],
+            int(values[index])));
         REQUIRE(name == reference_names[index++]);
     }
 }
