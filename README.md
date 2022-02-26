@@ -87,3 +87,25 @@ nav_declare_enum(
     Indigo = 0x8A2BE2,
     Violet = Red + Blue);
 ```
+
+## Comparisons against other libraries
+
+|                             | **[nav]** | [magic_enum] | [better-enums] | [enum.hpp] | [wise_enum] |
+| --------------------------- | --------- | ------------ | -------------- | ---------- | ----------- |
+| Requires macro              | Yes       | No           | Yes            | Yes        | Yes         |
+| Limits on min/max value?    | No        | Yes          |                |            |             |
+| Limits on number of values? | No        | Yes          |                |            |             |
+| Supports aliased values?    | Yes       | No           |                |            |             |
+| Supports using enum?        | Yes       | Yes          | No             |            | Yes         |
+| Special Declaration Syntax? | No        | No           |                |            | Yes         |
+| Compact Names in Binary?    | Yes       |              | No             |            |             |
+| Fuzzy Matching Support      | Yes       | No           |                |            |             |
+| Lowercase name lookup       | Yes       | Yes          |                |            |             |
+| libfmt support              | Yes       |              |                |            |             |
+| charconv support            | Yes       |              |                |            |             |
+
+[nav]: https://github.com/codeinred/nav
+[magic_enum]: https://github.com/Neargye/magic_enum
+[better-enums]: https://github.com/aantron/better-enums
+[enum.hpp]: https://github.com/BlackMATov/enum.hpp
+[wise_enum]: https://github.com/quicknir/wise_enum
