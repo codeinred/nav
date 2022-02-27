@@ -99,45 +99,25 @@ endif()
 FetchContent_MakeAvailable(${remote_dependencies})
 
 if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
-    add_source_dir(
-        src # the name of the directory
-        nav::nav # Libraries to link against
-        fmt::fmt)
+    set(test_libs
+        nav::nav
+        fmt::fmt
+        Catch2::Catch2WithMain)
+    set(test_sources tests/nav_core.cpp tests/nav_lowercase.cpp)
 
     # Register test_nav as an executable
-    add_executable(
-        nav_core #
-        tests/nav_core.cpp #
-        tests/nav_lowercase.cpp)
-    add_executable(
-        nav_core_null_terminated #
-        tests/nav_core.cpp #
-        tests/nav_lowercase.cpp)
+    add_executable(nav_core ${test_sources})
+    add_executable(nav_core_null_terminated ${test_sources})
 
     target_compile_features(nav_core PRIVATE cxx_std_17)
     target_compile_features(nav_core_null_terminated PRIVATE cxx_std_17)
 
     target_compile_definitions(nav_core_null_terminated
                                PRIVATE "NAV_ADD_NULL_TERMINATORS=1")
-    # target_compile_features(nav_charconv PRIVATE cxx_std_17)
-    # target_compile_features(nav_extra PRIVATE cxx_std_20)
 
-    # Tell CMake that test_nav should link against nav (our library), fmt,
-    # and Catch2. We link against Catch2WithMain b/c we're using the main
-    # function provided by Catch2
-    target_link_libraries(
-        nav_core
-        nav::nav
-        fmt::fmt
-        Catch2::Catch2WithMain)
-    target_link_libraries(
-        nav_core_null_terminated
-        nav::nav
-        fmt::fmt
-        Catch2::Catch2WithMain)
+    target_link_libraries(nav_core ${test_libs})
+    target_link_libraries(nav_core_null_terminated ${test_libs})
 
-    # Append places where Catch2 might be to the CMake Module path, so we can
-    # use the function catch_discover_tests
     list(
         APPEND
         CMAKE_MODULE_PATH
@@ -147,29 +127,23 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     include(Catch)
     catch_discover_tests(nav_core)
     catch_discover_tests(nav_core_null_terminated)
-    # catch_discover_tests(nav_extra)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL AND BUILD_BENCHMARKS)
-    add_executable(nav_bench #
-                   bench/nav_hashing.cpp)
+    set(bench_libs
+        nav::nav
+        fmt::fmt
+        benchmark::benchmark_main)
+    set(bench_sources bench/nav_hashing.cpp)
 
-    add_executable(nav_bench_null_terminated #
-                   bench/nav_hashing.cpp)
+    add_executable(nav_bench ${bench_sources})
+    add_executable(nav_bench_null_terminated ${bench_sources})
 
     target_compile_features(nav_bench PRIVATE cxx_std_17)
     target_compile_features(nav_bench_null_terminated PRIVATE cxx_std_17)
 
-    target_link_libraries(
-        nav_bench
-        nav::nav
-        fmt::fmt
-        benchmark::benchmark_main)
-    target_link_libraries(
-        nav_bench_null_terminated
-        nav::nav
-        fmt::fmt
-        benchmark::benchmark_main)
+    target_link_libraries(nav_bench ${bench_libs})
+    target_link_libraries(nav_bench_null_terminated ${bench_libs})
 
     target_compile_definitions(nav_bench_null_terminated
                                PRIVATE "NAV_ADD_NULL_TERMINATORS=1")
