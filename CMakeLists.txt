@@ -62,7 +62,12 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/nav
 
 include(helper)
 
-if(PROJECT_IS_TOP_LEVEL)
+option(
+    BUILD_TESTING
+    "Build Tests for Nav"
+    ON)
+
+if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 
