@@ -66,6 +66,10 @@ option(
     BUILD_TESTING
     "Build Tests for Nav"
     ON)
+option(
+    BUILD_BENCHMARKS
+    "Build Tests for Nav"
+    ON)
 
 if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -81,24 +85,34 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
         https://github.com/catchorg/catch2.git
         devel
         3.0.0)
+endif()
 
-    FetchContent_MakeAvailable(${remote_dependencies})
+if(PROJECT_IS_TOP_LEVEL AND BUILD_BENCHMARKS)
+    set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
+    find_or_fetch(
+        benchmark
+        https://github.com/google/benchmark.git
+        main
+        1.6)
+endif()
 
+FetchContent_MakeAvailable(${remote_dependencies})
+
+if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     add_source_dir(
         src # the name of the directory
         nav::nav # Libraries to link against
         fmt::fmt)
 
     # Register test_nav as an executable
-    add_executable(nav_core tests/nav_core.cpp tests/nav_lowercase.cpp)
-    add_executable(nav_core_null_terminated tests/nav_core.cpp
-                                            tests/nav_lowercase.cpp)
-    # add_executable(
-    #     nav_extra
-    #     tests/fuzzy_match.cpp
-    #     tests/nav_extra.cpp
-    #     tests/nav_iostream.cpp)
-    # add_executable(nav_charconv tests/charconv.cpp)
+    add_executable(
+        nav_core #
+        tests/nav_core.cpp #
+        tests/nav_lowercase.cpp)
+    add_executable(
+        nav_core_null_terminated #
+        tests/nav_core.cpp #
+        tests/nav_lowercase.cpp)
 
     target_compile_features(nav_core PRIVATE cxx_std_17)
     target_compile_features(nav_core_null_terminated PRIVATE cxx_std_17)
@@ -121,16 +135,6 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
         nav::nav
         fmt::fmt
         Catch2::Catch2WithMain)
-    # target_link_libraries(
-    #     nav_extra
-    #     nav::nav
-    #     fmt::fmt
-    #     Catch2::Catch2WithMain)
-    # target_link_libraries(
-    #     nav_charconv
-    #     nav::nav
-    #     fmt::fmt
-    #     Catch2::Catch2WithMain)
 
     # Append places where Catch2 might be to the CMake Module path, so we can
     # use the function catch_discover_tests
@@ -144,4 +148,29 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     catch_discover_tests(nav_core)
     catch_discover_tests(nav_core_null_terminated)
     # catch_discover_tests(nav_extra)
+endif()
+
+if(PROJECT_IS_TOP_LEVEL AND BUILD_BENCHMARKS)
+    add_executable(nav_bench #
+                   bench/nav_hashing.cpp)
+
+    add_executable(nav_bench_null_terminated #
+                   bench/nav_hashing.cpp)
+
+    target_compile_features(nav_bench PRIVATE cxx_std_17)
+    target_compile_features(nav_bench_null_terminated PRIVATE cxx_std_17)
+
+    target_link_libraries(
+        nav_bench
+        nav::nav
+        fmt::fmt
+        benchmark::benchmark_main)
+    target_link_libraries(
+        nav_bench_null_terminated
+        nav::nav
+        fmt::fmt
+        benchmark::benchmark_main)
+
+    target_compile_definitions(nav_bench_null_terminated
+                               PRIVATE "NAV_ADD_NULL_TERMINATORS=1")
 endif()
