@@ -70,6 +70,20 @@
                 "FORCE_DIAGNOSTIC_COLORS": "ON",
                 "CMAKE_CXX_FLAGS": "-std=c++20 -O2 -fmax-errors=5"
             }
+        },
+        {
+            "name": "Bench",
+            "displayName": "Configure Bench",
+            "description": "Devel Preset (explicitly enables C++20 for clangd)",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ALWAYS_FETCH": "ON",
+                "BUILD_SHARED_LIBS": "ON",
+                "FORCE_DIAGNOSTIC_COLORS": "ON",
+                "CMAKE_CXX_FLAGS": "-std=c++20 -O3 -fmarch=native -fmax-errors=5"
+            }
         }
     ],
     "buildPresets": [
@@ -101,6 +115,12 @@
             "name": "DevelCpp20",
             "configurePreset": "DevelCpp20",
             "configuration": "DevelCpp20",
+            "jobs": 8
+        },
+        {
+            "name": "Bench",
+            "configurePreset": "Bench",
+            "configuration": "Bench",
             "jobs": 8
         }
     ]
