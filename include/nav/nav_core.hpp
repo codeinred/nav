@@ -498,8 +498,7 @@ template <class Enum>
 constexpr enum_name_list<Enum> enum_names {};
 } // namespace nav
 
-#define NAV_DECLARE_ENUM(EnumType, BaseType, ...)                              \
-    enum class EnumType : BaseType { __VA_ARGS__ };                            \
+#define NAV_DECLARE_COMMON_ENUM(EnumType, BaseType, ...)                       \
     namespace nav::detail {                                                    \
     template <>                                                                \
     struct enum_type_info_base<EnumType> {                                     \
@@ -548,8 +547,26 @@ constexpr enum_name_list<Enum> enum_names {};
     };                                                                         \
     } // namespace nav::detail
 
+#define NAV_DECLARE_ENUM(EnumType, BaseType, ...)                              \
+    enum EnumType : BaseType { __VA_ARGS__ };                                  \
+    NAV_DECLARE_COMMON_ENUM(EnumType, BaseType, __VA_ARGS__)
+
+#define NAV_DECLARE_ENUM_CLASS(EnumType, BaseType, ...)                        \
+    enum class EnumType : BaseType { __VA_ARGS__ };                            \
+    NAV_DECLARE_COMMON_ENUM(EnumType, BaseType, __VA_ARGS__)
+
+#define NAV_DECLARE_ENUM_STRUCT(EnumType, BaseType, ...)                       \
+    enum struct EnumType : BaseType { __VA_ARGS__ };                           \
+    NAV_DECLARE_COMMON_ENUM(EnumType, BaseType, __VA_ARGS__)
+
 #ifndef NAV_NO_PRETTY_MACROS
 #define nav_declare_enum(EnumType, BaseType, ...)                              \
     NAV_DECLARE_ENUM(EnumType, BaseType, __VA_ARGS__)
+
+#define nav_declare_enum_class(EnumType, BaseType, ...)                        \
+    NAV_DECLARE_ENUM_CLASS(EnumType, BaseType, __VA_ARGS__)
+
+#define nav_declare_enum_struct(EnumType, BaseType, ...)                       \
+    NAV_DECLARE_ENUM_STRUCT(EnumType, BaseType, __VA_ARGS__)
 #endif
 #endif

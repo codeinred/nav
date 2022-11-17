@@ -6,7 +6,7 @@
 #include <string>
 
 // clang-format off
-nav_declare_enum(
+nav_declare_enum_class(
     CommonWords, // Name of enum
     int,         // Base type
     // A h*ck-ton of words varying in length from 5-7 leters

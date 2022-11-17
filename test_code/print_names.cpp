@@ -5,7 +5,7 @@
 #define NUM_VALUES 1
 #define TEST_VALUES E0
 #endif
-nav_declare_enum(TestEnum, int, TEST_VALUES);
+nav_declare_enum_class(TestEnum, int, TEST_VALUES);
 
 int main() {
     for (std::string_view name : nav::enum_names<TestEnum>) {

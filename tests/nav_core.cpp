@@ -3,7 +3,7 @@
 #include <nav/nav_core.hpp>
 #include <type_traits>
 
-nav_declare_enum(
+nav_declare_enum_class(
     RainbowColors,
     int,
     Red = 0xff0000,
