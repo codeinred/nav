@@ -498,11 +498,10 @@ template <class Enum>
 constexpr enum_name_list<Enum> enum_names {};
 } // namespace nav
 
-          }) {}                                                                        \
 #define __NAV_CONCAT___(str1, str2) (str1 "::" str2)
 #define __NAV_CONCAT__(str1, str2) (#str1 "::" #str2)
 
-#define NAV_DECLARE_COMMON_ENUM(NamespaceName, EEnumType, BaseType, ...)                                     \
+#define NAV_DECLARE_COMMON_ENUM(NamespaceName, EnumType, BaseType, ...)                                     \
     namespace nav::detail {                                                                                  \
     template <>                                                                                              \
     struct enum_type_info_base<EnumType> {                                                                   \
