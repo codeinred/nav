@@ -498,75 +498,79 @@ template <class Enum>
 constexpr enum_name_list<Enum> enum_names {};
 } // namespace nav
 
-#define NAV_DECLARE_COMMON_ENUM(EnumType, BaseType, ...)                               \
-    namespace nav::detail {                                                            \
-    template <>                                                                        \
-    struct enum_type_info_base<EnumType> {                                             \
-        using base_type = BaseType;                                                    \
-        constexpr static std::string_view qualified_type_name = #EnumType;             \
-        constexpr static std::string_view type_name = get_top_name(#EnumType);         \
-        constexpr static bool is_nav_enum = true;                                      \
-        constexpr static size_t num_states = []() -> size_t {                          \
-            enum_maker<BaseType> __VA_ARGS__;                                          \
-            enum_maker<BaseType> NAV_DECLARE_ENUM_vals[] {__VA_ARGS__};                \
-            return sizeof(NAV_DECLARE_ENUM_vals)                                       \
-                 / sizeof(enum_maker<BaseType>);                                       \
-        }();                                                                           \
-        constexpr static size_t size() noexcept {                                      \
-            return num_states;                                                         \
-        }                                                                              \
-    };                                                                                 \
-    template <>                                                                        \
-    struct enum_value_list_base<EnumType> : enum_type_info_base<EnumType> {            \
-        EnumType __nav_internal_values__[enum_type_info_base<EnumType>::num_states];   \
-        constexpr enum_value_list_base()                                               \
-          : __nav_internal_values__() {                                                \
-            enum_maker<BaseType> __VA_ARGS__;                                          \
-            value_assigner<BaseType> {}, __VA_ARGS__;                                  \
-            enum_maker<BaseType> NAV_DECLARE_ENUM_vals[] {__VA_ARGS__};                \
-            for (size_t i = 0; i < enum_type_info_base<EnumType>::num_states;          \
-                 i++)                                                                  \
-                this->__nav_internal_values__[i] = EnumType(NAV_DECLARE_ENUM_vals[i]); \
-        }                                                                              \
-    };                                                                                 \
-    template <>                                                                        \
-    struct enum_name_list_base<EnumType> : enum_type_info_base<EnumType> {             \
-        using enum_type_info_base<EnumType>::num_states;                               \
-        constexpr static size_t                                                        \
-            name_block_size = compute_name_block_size<num_states>(                     \
-                #__VA_ARGS__);                                                         \
-        using block_type = string_block<num_states, name_block_size>;                  \
-        block_type name_block;                                                         \
-        constexpr enum_name_list_base()                                                \
-          : name_block([](auto& block) {                                               \
-              write_names_and_sizes<num_states>(                                       \
-                  #__VA_ARGS__,                                                        \
-                  block.data,                                                          \
-                  block.offsets);                                                      \
           }) {}                                                                        \
-    };                                                                                 \
+#define __NAV_CONCAT___(str1, str2) (str1 "::" str2)
+#define __NAV_CONCAT__(str1, str2) (#str1 "::" #str2)
+
+#define NAV_DECLARE_COMMON_ENUM(NamespaceName, EEnumType, BaseType, ...)                                     \
+    namespace nav::detail {                                                                                  \
+    template <>                                                                                              \
+    struct enum_type_info_base<EnumType> {                                                                   \
+        using base_type = BaseType;                                                                          \
+        constexpr static std::string_view qualified_type_name = __NAV_CONCAT__(NamespaceName, EnumType);     \
+        constexpr static std::string_view type_name = get_top_name(__NAV_CONCAT__(NamespaceName, EnumType)); \
+        constexpr static bool is_nav_enum = true;                                                            \
+        constexpr static size_t num_states = []() -> size_t {                                                \
+            enum_maker<BaseType> __VA_ARGS__;                                                                \
+            enum_maker<BaseType> NAV_DECLARE_ENUM_vals[] {__VA_ARGS__};                                      \
+            return sizeof(NAV_DECLARE_ENUM_vals)                                                             \
+                 / sizeof(enum_maker<BaseType>);                                                             \
+        }();                                                                                                 \
+        constexpr static size_t size() noexcept {                                                            \
+            return num_states;                                                                               \
+        }                                                                                                    \
+    };                                                                                                       \
+    template <>                                                                                              \
+    struct enum_value_list_base<EnumType> : enum_type_info_base<EnumType> {                                  \
+        EnumType __nav_internal_values__[enum_type_info_base<EnumType>::num_states];                         \
+        constexpr enum_value_list_base()                                                                     \
+          : __nav_internal_values__() {                                                                      \
+            enum_maker<BaseType> __VA_ARGS__;                                                                \
+            value_assigner<BaseType> {}, __VA_ARGS__;                                                        \
+            enum_maker<BaseType> NAV_DECLARE_ENUM_vals[] {__VA_ARGS__};                                      \
+            for (size_t i = 0; i < enum_type_info_base<EnumType>::num_states;                                \
+                 i++)                                                                                        \
+                this->__nav_internal_values__[i] = EnumType(NAV_DECLARE_ENUM_vals[i]);                       \
+        }                                                                                                    \
+    };                                                                                                       \
+    template <>                                                                                              \
+    struct enum_name_list_base<EnumType> : enum_type_info_base<EnumType> {                                   \
+        using enum_type_info_base<EnumType>::num_states;                                                     \
+        constexpr static size_t                                                                              \
+            name_block_size = compute_name_block_size<num_states>(                                           \
+                #__VA_ARGS__);                                                                               \
+        using block_type = string_block<num_states, name_block_size>;                                        \
+        block_type name_block;                                                                               \
+        constexpr enum_name_list_base()                                                                      \
+          : name_block([](auto& block) {                                                                     \
+              write_names_and_sizes<num_states>(                                                             \
+                  #__VA_ARGS__,                                                                              \
+                  block.data,                                                                                \
+                  block.offsets);                                                                            \
+          }) {}                                                                                              \
+    };                                                                                                       \
     } // namespace nav::detail
 
-#define NAV_DECLARE_ENUM(EnumType, BaseType, ...)                                      \
-    enum EnumType : BaseType { __VA_ARGS__ };                                          \
-    NAV_DECLARE_COMMON_ENUM(EnumType, BaseType, __VA_ARGS__)
+#define NAV_DECLARE_ENUM(NamespaceName, EnumType, BaseType, ...)                                             \
+    namespace NamespaceName { enum EnumType : BaseType { __VA_ARGS__ }; }                                    \
+    NAV_DECLARE_COMMON_ENUM(NamespaceName, EnumType, BaseType, __VA_ARGS__)
 
-#define NAV_DECLARE_ENUM_CLASS(EnumType, BaseType, ...)                                \
-    enum class EnumType : BaseType { __VA_ARGS__ };                                    \
-    NAV_DECLARE_COMMON_ENUM(EnumType, BaseType, __VA_ARGS__)
+#define NAV_DECLARE_ENUM_CLASS(NamespaceName, EnumType, BaseType, ...)                                       \
+    namespace NamespaceName { enum class EnumType : BaseType { __VA_ARGS__ }; }                              \
+    NAV_DECLARE_COMMON_ENUM(NamespaceName, EnumType, BaseType, __VA_ARGS__)
 
-#define NAV_DECLARE_ENUM_STRUCT(EnumType, BaseType, ...)                               \
-  enum struct EnumType : BaseType { __VA_ARGS__ };                                     \
-  NAV_DECLARE_COMMON_ENUM(EnumType, BaseType, __VA_ARGS__)
+#define NAV_DECLARE_ENUM_STRUCT(NamespaceName, EnumType, BaseType, ...)                                      \
+    namespace NamespaceName { enum struct EnumType : BaseType { __VA_ARGS__ }; }                             \
+    NAV_DECLARE_COMMON_ENUM(NamespaceName, EnumType, BaseType, __VA_ARGS__)
 
 #ifndef NAV_NO_PRETTY_MACROS
-#define nav_declare_enum(EnumType, BaseType, ...)                                      \
-    NAV_DECLARE_ENUM(EnumType, BaseType, __VA_ARGS__)
+#define nav_declare_enum(NamespaceName, EnumType, BaseType, ...)                                             \
+    NAV_DECLARE_ENUM(NamespaceName, EnumType, BaseType, __VA_ARGS__)
 
-#define nav_declare_enum_class(EnumType, BaseType, ...)                                \
-    NAV_DECLARE_ENUM_CLASS(EnumType, BaseType, __VA_ARGS__)
+#define nav_declare_enum_class(NamespaceName, EnumType, BaseType, ...)                                       \
+    NAV_DECLARE_ENUM_CLASS(NamespaceName, EnumType, BaseType, __VA_ARGS__)
 
-#define nav_declare_enum_struct(EnumType, BaseType, ...)                               \
-  NAV_DECLARE_ENUM_STRUCT(EnumType, BaseType, __VA_ARGS__)
+#define nav_declare_enum_struct(NamespaceName, EnumType, BaseType, ...)                                      \
+  NAV_DECLARE_ENUM_STRUCT(NamespaceName, EnumType, BaseType, __VA_ARGS__)
 #endif
 #endif
