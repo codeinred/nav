@@ -2,7 +2,7 @@
 
 ## Checklist
 
-- [x] Implement `NAV_DECLARE_ENUM` without recursive macro instantiation
+- [x] Implement `NAV_DECLARE_ENUM`, `NAV_DECLARE_ENUM_CLASS` and `NAV_DECLARE_ENUM_STRUCT` without recursive macro instantiation
 - [x] Remove limit on number of elements in an enumeration
 - [x] Support enumerations with non-trivial dependencies (these are enumerations
       whose values depend on other members of the enumeration)
@@ -76,7 +76,7 @@ preceeding members. For example, Green is defined in terms of Yellow and Red
 
 ```cpp
 
-nav_declare_enum(
+nav_declare_enum_class(
     RainbowColors,
     int,
     Red = 0xff0000,

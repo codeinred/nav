@@ -6,7 +6,7 @@ namespace test_nav {
 enum class Color;
 }
 
-nav_declare_enum(test_nav::Color, int, Red, Green, Blue);
+nav_declare_enum_class(test_nav::Color, int, Red, Green, Blue);
 
 TEST_CASE("Testing nav_libfmt", "[extra][fmt]") {
     using test_nav::Color;

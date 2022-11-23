@@ -12,7 +12,7 @@ enum class AnotherEnum {
     Value3,
 };
 
-nav_declare_enum(
+nav_declare_enum_class(
     FooBar::FibonacciNumbers, // Name
     int64_t,                  // Base type
     F0 = 0,

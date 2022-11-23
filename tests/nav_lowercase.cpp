@@ -2,7 +2,7 @@
 #include <nav/nav_lowercase.hpp>
 #include <fmt/core.h>
 
-nav_declare_enum(
+nav_declare_enum_class(
     RainbowColors,
     int,
     Red = 0xff0000,
